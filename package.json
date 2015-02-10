@@ -1,0 +1,9 @@
+{
+  "name": "khelg-game-server",
+  "version": "0.0.1",
+  "description": "A game server",
+  "dependencies": {
+    "express": "^4.10.2",
+    "socket.io": "^1.3.3"
+  }
+}
