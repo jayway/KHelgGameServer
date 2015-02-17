@@ -5,7 +5,8 @@
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font: 13px Helvetica, Arial; }
-.header {background: #DDD; height:48px;}
+.header {background: #DDD;}
+.messagesContainer {position:fixed; left:400px; top: 0px; width:400px;}
 form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
 form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
 form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
@@ -15,12 +16,17 @@ form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 
 </style>
 </head>
 <body>
-  <div class="header">
-    <h2>Messages</h2>
+  <div class="canvasContainer">
   </div>
-<ul id="messages"></ul>
+  <div class="messagesContainer">
+  <div class="header">
+    <h2>Chat</h2>
+    <p id="players"></p>
+  </div>
+    <ul id="messages"></ul>
+  </div>
 <form action="">
-<input id="m" autocomplete="off" placeholder="enter test string" /><button>Send</button>
+<input id="m" autocomplete="off" placeholder="" /><button>Send</button>
 </form>
 <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
 <script src="https://code.jquery.com/jquery-1.11.1.js"></script>

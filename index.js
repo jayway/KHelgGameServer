@@ -17,8 +17,7 @@ app.get('/client.js', function(req, res){
 
 io.on('connection', function(socket){
   var addedPlayer = false;
-  var player = socket.player;
-  console.log(player+' connected');
+  console.log(socket.player+' connected');
 
   socket.on('disconnect', function(){
     io.emit('message', socket.player+" disconnected");

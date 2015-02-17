@@ -52,7 +52,7 @@ var update = function() {
 };
 
 var render = function() {
-  context.fillStyle = "#FF00FF";
+  context.fillStyle = "#DDDDEE";
   context.fillRect(0, 0, width, height);
   player.render();
   remoteplayer.render();
@@ -176,7 +176,7 @@ Ball.prototype.update = function(paddle1, paddle2) {
 };
 
 $(function() {
-  document.body.appendChild(canvas);
+  $(".canvasContainer").append(canvas);
   window.addEventListener("keydown", function(event) {
     keysDown[event.keyCode] = true;
   });
