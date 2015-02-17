@@ -23,33 +23,8 @@ form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 
 <input id="m" autocomplete="off" placeholder="enter test string" /><button>Send</button>
 </form>
 <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
-<script src="http://code.jquery.com/jquery-1.11.1.js"></script>
-<script>
-
-function userBrowser() {
-  var ua = navigator.userAgent.toLowerCase();
-  if(ua.indexOf("firefox") >-1) { return "Firefox"; }
-  if(ua.indexOf("chrome") >-1) { return "Chrome"; }
-  if(ua.indexOf("phone") >-1) { return "phone"; }
-  return "unknown-browser";
-}
-
-var socket = io();
-$('form').submit(function(){
-  console.log("Broadcasting: "+ $('#m').val());
-  socket.emit('message', $('#m').val());
-  $('#m').val('');
-  return false;
-});
-
-$(function() {
-  socket.emit('add player', "Testuser-"+userBrowser() );
-  socket.on('message', function(msg){
-    $('#messages').append($('<li>').text(msg));
-  });
-});
-
-</script>
+<script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+<script src="client.js"></script>
 </body>
 </html>
 

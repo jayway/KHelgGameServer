@@ -5,14 +5,19 @@ var io = require('socket.io')(http);
 var players = {};
 var numPlayers = 0;
 
+var game = require("./game.js");
+
 app.get('/', function(req, res){
     res.sendFile(__dirname + '/index.html');
+    });
+
+app.get('/client.js', function(req, res){
+    res.sendFile(__dirname + '/client.js');
     });
 
 io.on('connection', function(socket){
   var addedPlayer = false;
   var player = socket.player;
-  //io.emit('message', player+" connected");
   console.log(player+' connected');
 
   socket.on('disconnect', function(){
