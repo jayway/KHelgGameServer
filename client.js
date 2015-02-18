@@ -8,11 +8,6 @@ function userBrowser() {
 }
 
 var socket = io();
-$('form').submit(function(){
-  socket.emit('message', $('#m').val());
-  $('#m').val('');
-  return false;
-});
 
 // Canvas
 var canvas = document.createElement('canvas');
@@ -116,6 +111,12 @@ Ball.prototype.update = function(paddle1, paddle2) {
   // from server
 };
 
+$('form').submit(function(){
+  socket.emit('message', $('#m').val());
+  $('#m').val('');
+  return false;
+});
+
 $(function() {
   $(".canvasContainer").append(canvas);
   window.addEventListener("keydown", function(event) {
@@ -124,6 +125,15 @@ $(function() {
   window.addEventListener("keyup", function(event) {
     delete keysDown[event.keyCode];
   });
+  $(".leftButton").on("click", function(){
+      socket.emit('move', {paddle: {x:-20.0, y:0} } );
+    console.log("left");
+  });
+  $(".rightButton").on("click", function(){
+    console.log("right");
+      socket.emit('move', {paddle: {x:20.0, y:0} } );
+  });
+
   var name = "Testuser-"+userBrowser()
   console.log("Connecting as "+name);
   socket.emit('add player', name );
@@ -132,9 +142,9 @@ $(function() {
   });
   socket.on('players', function(data){
     var playersString = ""
-    for (var player in data.players) {
-    console.log("Player: "+player);
-      playersString+=" "+player
+    for (var i in data.players) {
+    console.log("Player: "+data.players[i]);
+      playersString+=" "+data.players[i];
     }
     $('#players').text("Players: "+playersString);
   });
@@ -143,6 +153,8 @@ $(function() {
     ball.y = gameState.ball.y;
     player.paddle.x = gameState.playerPaddle.x;
     player.paddle.y = gameState.playerPaddle.y;
+    remoteplayer.paddle.x = gameState.remotePlayerPaddle.x;
+    remoteplayer.paddle.y = gameState.remotePlayerPaddle.y;
     step();
   });
 });

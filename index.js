@@ -106,8 +106,8 @@ var Game = function(io, socket1, socket2) {
 
   this.started = true;
 
-  this.player1 = new Player(socket1, socket1.player, 175, 580, 50, 10);
-  this.player2 = new Player(socket2, socket2.player, 175, 10, 50, 10);
+  this.player1 = new Player(socket1, socket1.playername, 175, 580, 50, 10);
+  this.player2 = new Player(socket2, socket2.playername, 175, 10, 50, 10);
 
   // Ball
   this.ball = new Ball(200, 300);
@@ -133,7 +133,8 @@ Game.prototype.broadcast = function() {
       y:this.player1.paddle.y
     },
     remotePlayerPaddle: {
-      // TOOD
+      x:this.player2.paddle.x, 
+      y:this.player2.paddle.y
     }
   }
   io.emit('step', gameState);
@@ -144,9 +145,16 @@ Game.prototype.animate = function(callback) {
 }
 
 Game.prototype.step = function() {
-  this.update();
-  this.broadcast();
-  this.animate(this.step);
+  // a disconnect can stop the game at any time
+  if(gameStarted) {
+    this.update();
+  }
+  if(gameStarted) {
+    this.broadcast();
+  }
+  if(gameStarted) {
+    this.animate(this.step);
+  }
 };
 
 
@@ -167,7 +175,6 @@ app.get('/jquery.js', function(req, res){
   res.sendFile(__dirname + '/jquery.min.js');
 });
 
-
 // WebSocket connections:
 //
 io.on('connection', function(socket){
@@ -179,6 +186,7 @@ io.on('connection', function(socket){
     if (addedPlayer) {
       delete players[socket.playername];
       --numPlayers;
+      gameStarted = false; //will cause game loop to stop
     }
     io.sockets.emit('players', {
       players: players,
@@ -187,15 +195,16 @@ io.on('connection', function(socket){
   });
 
   socket.on('message', function(msg){
-    console.log("message: '" + msg+"' from "+socket.player+". Broadcasting back.");
-    io.emit('message', socket.player+"> "+msg);
+    console.log("message: '" + msg+"' from "+socket.playername+". Broadcasting back.");
+    io.emit('message', socket.playername+"> "+msg);
   });
 
   socket.on('move', function(data){
-    // TODO: Check if this is player1 or 2
-    var player = players[socket.playername] 
-    //console.log("Player '"+player.name+"' moved. ");
-    game.player1.paddle.move(data.paddle.x, data.paddle.y);
+    player = game.player2;
+    if(socket.playername === game.player1.name) {
+      player = game.player1;
+    }
+    player.paddle.move(data.paddle.x, data.paddle.y);
 
 
   });
@@ -205,21 +214,18 @@ io.on('connection', function(socket){
 
     socket.playername = playername;
     // add the client's username to the global list
-    players[playername] = playername;
+    players[playername] = socket;
     ++numPlayers;
     console.log(numPlayers+" connected player(s)");
-    for (var player in players) {
-      console.log(player);
-    }
-
+    namelist = Object.keys(players);
     addedPlayer = true;
     io.sockets.emit('players', {
-      players: players,
+      players: namelist,
       numPlayers: numPlayers
     });
     if(numPlayers==2 && ! gameStarted) { // right now one player game
       console.log("GAME IS STARTING!11");
-      game = new Game(io,socket,socket);
+      game = new Game(io,players[namelist[0]],players[namelist[1]]);
       gameStarted = true;
       game.step();
     }
