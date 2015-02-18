@@ -130,9 +130,13 @@ $(function() {
   socket.on('message', function(msg){
     $('#messages').append($('<li>').text(msg));
   });
-  socket.on('player joined', function(data){
-    console.log("Player joined: "+data.player);
-    $('#players').append($('<li>').text(data.player));
+  socket.on('players', function(data){
+    var playersString = ""
+    for (var player in data.players) {
+    console.log("Player: "+player);
+      playersString+=" "+player
+    }
+    $('#players').text("Players: "+playersString);
   });
   socket.on('step', function(gameState){
     ball.x = gameState.ball.x;

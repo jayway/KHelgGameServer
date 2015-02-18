@@ -172,15 +172,18 @@ app.get('/jquery.js', function(req, res){
 //
 io.on('connection', function(socket){
   var addedPlayer = false;
-  console.log(socket.player+' connected');
+  console.log("Incoming connection...");
 
   socket.on('disconnect', function(){
-    io.emit('message', socket.player+" disconnected");
-    console.log(socket.player+' disconnected');
+    console.log(socket.playername+' disconnected');
     if (addedPlayer) {
-      delete players[socket.player];
+      delete players[socket.playername];
       --numPlayers;
     }
+    io.sockets.emit('players', {
+      players: players,
+      numPlayers: numPlayers
+    });
   });
 
   socket.on('message', function(msg){
@@ -191,7 +194,7 @@ io.on('connection', function(socket){
   socket.on('move', function(data){
     // TODO: Check if this is player1 or 2
     var player = players[socket.playername] 
-    console.log("Player '"+player.name+"' moved. ");
+    //console.log("Player '"+player.name+"' moved. ");
     game.player1.paddle.move(data.paddle.x, data.paddle.y);
 
 
@@ -204,9 +207,14 @@ io.on('connection', function(socket){
     // add the client's username to the global list
     players[playername] = playername;
     ++numPlayers;
+    console.log(numPlayers+" connected player(s)");
+    for (var player in players) {
+      console.log(player);
+    }
+
     addedPlayer = true;
-    socket.emit('player joined', {
-      player: socket.player,
+    io.sockets.emit('players', {
+      players: players,
       numPlayers: numPlayers
     });
     if(numPlayers==2 && ! gameStarted) { // right now one player game
