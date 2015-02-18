@@ -2,11 +2,13 @@ var app = require('express')();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 
+// Pong game:
+//
+
+var game;
 var players = {};
 var numPlayers = 0;
 var gameStarted = false;
-// Pong game:
-//
 
 function Paddle(x, y, width, height) {
   this.x = x;
@@ -32,9 +34,19 @@ Paddle.prototype.move = function(x, y) {
   }
 }
 
-function Player(socket,x,y,w,h) {
+function Player(socket,name, x,y,w,h) {
+  this.name = name;
   this.paddle = new Paddle(x, y, w, h);
   this.socket = socket;
+}
+
+Player.prototype.toString = function playerToString() {
+  if(this.name === undefined) {
+    return "Unregistered player"; 
+  }
+  else {
+    return 'Player known as ' + this.name +". Pos=("+this.paddle.x+","+this.paddle.y+")";
+  }
 }
 
 
@@ -48,7 +60,7 @@ function Ball(x, y) {
 
 Ball.prototype.update = function(paddle1, paddle2) {
   // Game logic...
-  
+
   this.x += this.x_speed;
   this.y += this.y_speed;
   var top_x = this.x - 5;
@@ -94,8 +106,8 @@ var Game = function(io, socket1, socket2) {
 
   this.started = true;
 
-  this.player1 = new Player(socket1, 175, 580, 50, 10);
-  this.player2 = new Player(socket2, 175, 10, 50, 10);
+  this.player1 = new Player(socket1, socket1.player, 175, 580, 50, 10);
+  this.player2 = new Player(socket2, socket2.player, 175, 10, 50, 10);
 
   // Ball
   this.ball = new Ball(200, 300);
@@ -124,7 +136,7 @@ Game.prototype.broadcast = function() {
       // TOOD
     }
   }
-    io.emit('step', gameState);
+  io.emit('step', gameState);
 };
 
 Game.prototype.animate = function(callback) { 
@@ -132,9 +144,9 @@ Game.prototype.animate = function(callback) {
 }
 
 Game.prototype.step = function() {
-    this.update();
-    this.broadcast();
-    this.animate(this.step);
+  this.update();
+  this.broadcast();
+  this.animate(this.step);
 };
 
 
@@ -142,25 +154,24 @@ Game.prototype.step = function() {
 // GET routes:
 //
 app.get('/', function(req, res){
-    res.sendFile(__dirname + '/index.html');
-    });
+  res.sendFile(__dirname + '/index.html');
+});
 
 app.get('/client.js', function(req, res){
-    res.sendFile(__dirname + '/client.js');
-    });
+  res.sendFile(__dirname + '/client.js');
+});
 app.get('/socket.io.js', function(req, res){
-    res.sendFile(__dirname + '/socket.io-1.2.0.js');
-    });
+  res.sendFile(__dirname + '/socket.io-1.2.0.js');
+});
 app.get('/jquery.js', function(req, res){
-    res.sendFile(__dirname + '/jquery.min.js');
-    });
+  res.sendFile(__dirname + '/jquery.min.js');
+});
 
 
 // WebSocket connections:
 //
 io.on('connection', function(socket){
   var addedPlayer = false;
-  var game;
   console.log(socket.player+' connected');
 
   socket.on('disconnect', function(){
@@ -179,31 +190,28 @@ io.on('connection', function(socket){
 
   socket.on('move', function(data){
     // TODO: Check if this is player1 or 2
-    
+    var player = players[socket.playername] 
+    console.log("Player '"+player.name+"' moved. ");
     game.player1.paddle.move(data.paddle.x, data.paddle.y);
 
 
   });
 
-  socket.on('add player', function (player) {
-    console.log("Say hello to "+player);
+  socket.on('add player', function (playername) {
+    console.log("Say hello to "+playername);
 
-
-    socket.player = player;
+    socket.playername = playername;
     // add the client's username to the global list
-    players[player] = player;
+    players[playername] = playername;
     ++numPlayers;
     addedPlayer = true;
-    socket.emit('login', {
-      numPlayers: numPlayers
-    });
-    socket.broadcast.emit('player joined', {
+    socket.emit('player joined', {
       player: socket.player,
       numPlayers: numPlayers
     });
-    if(numPlayers==1 && ! gameStarted) { // right now one player game
+    if(numPlayers==2 && ! gameStarted) { // right now one player game
       console.log("GAME IS STARTING!11");
-      game = new Game(io,socket,0);
+      game = new Game(io,socket,socket);
       gameStarted = true;
       game.step();
     }
@@ -214,6 +222,6 @@ io.on('connection', function(socket){
 // HTTP server:
 //
 http.listen(3000, function(){
-    console.log('listening on *:3000');
-    });
+  console.log('listening on *:3000');
+});
 
