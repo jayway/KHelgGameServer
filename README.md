@@ -51,7 +51,7 @@ Sample response:
       remotePlayerPaddle: {x:100, y: 0}
     }
 
-TODO: Add game plan bounds.
+TODO: Add game plan bounds. Also add dimensions to the paddles, or just deffine a paddle as a rectangle, x1,y1,x2,y2. Also, radius for the ball is needed.
 
 ## Message to emit:
 
