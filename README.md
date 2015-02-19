@@ -2,7 +2,7 @@
 
 A little Pong Game Server using socket.io and express.
 
-## Instaling the server
+## Installing the server
 
 Make sure that you have NodeJS (0.12.0) installed. 
 
