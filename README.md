@@ -2,11 +2,13 @@
 
 A little Pong Game Server using socket.io and express.
 
-## Running the server
+## Installing the server
 
 Make sure that you have NodeJS (0.12.0) installed. 
 
+    $ node install
 
+## Running the server
 
     $ node index.js
 
@@ -51,7 +53,7 @@ Sample response:
       remotePlayerPaddle: {x:100, y: 0}
     }
 
-TODO: Add game plan bounds.
+TODO: Add game plan bounds. Also add dimensions to the paddles, or just deffine a paddle as a rectangle, x1,y1,x2,y2. Also, radius for the ball is needed.
 
 ## Message to emit:
 
