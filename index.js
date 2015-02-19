@@ -80,8 +80,20 @@ Ball.prototype.update = function(paddle1, paddle2) {
     this.x_speed = -this.x_speed;
   }
 
-  if(this.y < 0 || this.y > 600) { // a point was scored
+  if(this.y < 0) {
+    // player 2 dropped the ball
+    ++game.player1Points;
     this.resetPosition();
+    game.checkWinning();
+    console.log("Score for player1! "+game.player1Points+"-"+game.player2Points);
+  }
+
+  if(this.y > 600) { // a point was scored
+    // player 1 dropped the ball
+    ++game.player2Points;
+    this.resetPosition();
+    game.checkWinning();
+    console.log("Score for player2! "+game.player1Points+"-"+game.player2Points);
   }
 
   if(top_y > 300) {
@@ -93,7 +105,7 @@ Ball.prototype.update = function(paddle1, paddle2) {
     }
   } else {
     if(top_y < (paddle2.y + paddle2.height) && bottom_y > paddle2.y && top_x < (paddle2.x + paddle2.width) && bottom_x > paddle2.x) {
-      // the player2's paddle
+      // hit player2's paddle
       this.y_speed = 3;
       this.x_speed += (paddle2.x_speed / 2);
       this.y += this.y_speed;
@@ -101,6 +113,27 @@ Ball.prototype.update = function(paddle1, paddle2) {
   }
 };
 
+
+// Workaround to get connected sockets
+// See: http://stackoverflow.com/a/24145381/22012
+function findClientsSocket(roomId, namespace) {
+    var res = []
+    , ns = io.of(namespace ||"/");    // the default namespace is "/"
+
+    if (ns) {
+        for (var id in ns.connected) {
+            if(roomId) {
+                var index = ns.connected[id].rooms.indexOf(roomId) ;
+                if(index !== -1) {
+                    res.push(ns.connected[id]);
+                }
+            } else {
+                res.push(ns.connected[id]);
+            }
+        }
+    }
+    return res;
+}
 
 
 var Game = function(io, socket1, socket2) {
@@ -125,6 +158,26 @@ Game.prototype.update = function() {
   this.ball.update(this.player1.paddle, this.player2.paddle);
 };
 
+Game.prototype.resetGame = function() {
+  this.player1Points = 0;
+  this.player2Points = 0;
+};
+
+Game.prototype.checkWinning = function() {
+  if(this.player1Points>=this.winningPoints) {
+    io.emit("winning", {winner:this.player1.name, player1:this.player1Points, player2:this.player2Points});
+    gameStarted = false;
+  }
+  if(this.player2Points>=this.winningPoints) {
+    io.emit("winning", {winner:this.player2.name, player1:this.player1Points, player2:this.player2Points});
+    gameStarted = false;
+  }
+  // force players to re-register before starting a new game
+  players = {};
+  numPlayers=0;
+  
+};
+
 Game.prototype.broadcast = function() {
   // broadcast game state
   var gameState = {
@@ -142,6 +195,10 @@ Game.prototype.broadcast = function() {
     remotePlayerPaddle: {
       x:this.player2.paddle.x, 
       y:this.player2.paddle.y
+    },
+    score: {
+      player1: this.player1Points,
+      player2: this.player2Points
     }
   }
   io.emit('step', gameState);
@@ -204,8 +261,9 @@ io.on('connection', function(socket){
       delete players[socket.playername];
       --numPlayers;
       gameStarted = false; //will cause game loop to stop
+      console.log("Game stopped due to disconnect.");
     }
-    io.sockets.emit('players', {
+    io.emit('players', {
       players: players,
       numPlayers: numPlayers
     });
@@ -218,11 +276,16 @@ io.on('connection', function(socket){
   });
 
   socket.on('move', function(data){
-    player = game.player2;
-    if(socket.playername === game.player1.name) {
-      player = game.player1;
+    if(gameStarted) {
+      player = game.player2;
+      if(socket.playername === game.player1.name) {
+        player = game.player1;
+      }
+      player.paddle.move(data.paddle.x, data.paddle.y);
     }
-    player.paddle.move(data.paddle.x, data.paddle.y);
+    else {
+      console.log("Don't move until the game has started!!");
+    }
 
 
   });
@@ -232,18 +295,21 @@ io.on('connection', function(socket){
 
     socket.playername = data.playername;
     // add the client's username to the global list
-    players[data.playername] = socket;
+    players[data.playername] = data.playername;
     ++numPlayers;
     console.log(numPlayers+" connected player(s)");
     namelist = Object.keys(players);
     addedPlayer = true;
-    io.sockets.emit('players', {
+    io.emit('players', {
       players: namelist,
       numPlayers: numPlayers
     });
     if(numPlayers==2 && ! gameStarted) {  
-      console.log("GAME IS STARTING!11");
-      game = new Game(io,players[namelist[0]],players[namelist[1]]);
+      var clients = findClientsSocket();
+      var socket1 = clients[0];
+      var socket2 = clients[1];
+      console.log("Starting new game!");
+      game = new Game(io,socket1,socket2);
       gameStarted = true;
       game.step();
     }

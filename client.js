@@ -137,6 +137,13 @@ $(function() {
   var name = "Testuser-"+userBrowser()
   console.log("Connecting as "+name);
   socket.emit('add player', {playername: name} );
+  socket.on('winning', function(data){
+      alert(data.winner+" has won the game!");
+      $(".spinner").show();
+      var name = "Testuser-"+userBrowser()
+      console.log("Connecting as "+name);
+      socket.emit('add player', {playername: name} );
+  });
   socket.on('message', function(data){
     $('#messages').append($('<li>').text(data.player+"> "+data.message));
   });
