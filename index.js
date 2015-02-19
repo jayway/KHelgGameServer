@@ -143,6 +143,9 @@ var Game = function(io, socket1, socket2) {
   this.player1 = new Player(socket1, socket1.playername, 175, 580, 50, 10);
   this.player2 = new Player(socket2, socket2.playername, 175, 10, 50, 10);
 
+  this.gameplanHeight = 600;
+  this.gameplanWidth = 400; // TODO: Not actually used yet!
+
   // By letting Game keep score, a new player could potentially connect and 
   // "take over" an ongoing game
   this.player1Points = 0;
@@ -199,6 +202,10 @@ Game.prototype.broadcast = function() {
     score: {
       player1: this.player1Points,
       player2: this.player2Points
+    },
+    bounds: {
+      width:  this.gameplanWidth,
+      height: this.gameplanHeight
     }
   }
   io.emit('step', gameState);

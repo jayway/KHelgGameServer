@@ -50,10 +50,18 @@ Sample response:
     {
       ball: {x:10, y: 300, x_speed: 3, y_speed: 5},
       playerPaddle: {x:106, y: 400},
-      remotePlayerPaddle: {x:100, y: 0}
+      remotePlayerPaddle: {x:100, y: 0},
+      score: {
+        player1: 3,
+        player2: 0
+      },
+      bounds: {
+        width: 400,
+        height: 600
+      }
     }
 
-TODO: Add game plan bounds. Also add dimensions to the paddles, or just deffine a paddle as a rectangle, x1,y1,x2,y2. Also, radius for the ball is needed.
+TODO: Also add dimensions to the paddles, or just deffine a paddle as a rectangle, x1,y1,x2,y2. Also, radius for the ball is needed.
 
 ## Message to emit:
 
