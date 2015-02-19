@@ -50,12 +50,16 @@ Player.prototype.toString = function playerToString() {
 }
 
 
-function Ball(x, y) {
-  this.x = x;
-  this.y = y;
-  this.x_speed = 0;
-  this.y_speed = 3;
+function Ball() {
   this.radius = 5;
+  this.resetPosition();
+}
+
+Ball.prototype.resetPosition = function() {
+    this.x_speed = 0;
+    this.y_speed = 3;
+    this.x = 200;
+    this.y = 300;
 }
 
 Ball.prototype.update = function(paddle1, paddle2) {
@@ -77,10 +81,7 @@ Ball.prototype.update = function(paddle1, paddle2) {
   }
 
   if(this.y < 0 || this.y > 600) { // a point was scored
-    this.x_speed = 0;
-    this.y_speed = 3;
-    this.x = 200;
-    this.y = 300;
+    this.resetPosition();
   }
 
   if(top_y > 300) {
@@ -109,8 +110,14 @@ var Game = function(io, socket1, socket2) {
   this.player1 = new Player(socket1, socket1.playername, 175, 580, 50, 10);
   this.player2 = new Player(socket2, socket2.playername, 175, 10, 50, 10);
 
+  // By letting Game keep score, a new player could potentially connect and 
+  // "take over" an ongoing game
+  this.player1Points = 0;
+  this.player2Points = 0;
+  this.winningPoints = 5; // when a player reaches 5 points the game is over
+
   // Ball
-  this.ball = new Ball(200, 300);
+  this.ball = new Ball();
   this.io = io;
 }
 
@@ -159,12 +166,15 @@ Game.prototype.step = function() {
 
 
 
-// GET routes:
+// Static GET routes:
 //
 app.get('/', function(req, res){
   res.sendFile(__dirname + '/index.html');
 });
 
+app.get('/styles.css', function(req, res){
+  res.sendFile(__dirname + '/styles.css');
+});
 app.get('/client.js', function(req, res){
   res.sendFile(__dirname + '/client.js');
 });
@@ -175,6 +185,13 @@ app.get('/jquery.js', function(req, res){
   res.sendFile(__dirname + '/jquery.min.js');
 });
 
+app.get('/match_history.json', function(req, res){
+  res.sendFile(__dirname + '/match_history.json');
+});
+app.get('/jay.png', function(req, res){
+  res.sendFile(__dirname + '/jay.png');
+});
+//
 // WebSocket connections:
 //
 io.on('connection', function(socket){
@@ -194,9 +211,10 @@ io.on('connection', function(socket){
     });
   });
 
-  socket.on('message', function(msg){
+  socket.on('message', function(data){
+    msg = data.message
     console.log("message: '" + msg+"' from "+socket.playername+". Broadcasting back.");
-    io.emit('message', socket.playername+"> "+msg);
+    io.emit('message', {player:socket.playername, message:msg});
   });
 
   socket.on('move', function(data){
@@ -209,12 +227,12 @@ io.on('connection', function(socket){
 
   });
 
-  socket.on('add player', function (playername) {
-    console.log("Say hello to "+playername);
+  socket.on('add player', function (data) {
+    console.log("Say hello to "+data.playername);
 
-    socket.playername = playername;
+    socket.playername = data.playername;
     // add the client's username to the global list
-    players[playername] = socket;
+    players[data.playername] = socket;
     ++numPlayers;
     console.log(numPlayers+" connected player(s)");
     namelist = Object.keys(players);
@@ -223,7 +241,7 @@ io.on('connection', function(socket){
       players: namelist,
       numPlayers: numPlayers
     });
-    if(numPlayers==2 && ! gameStarted) { // right now one player game
+    if(numPlayers==2 && ! gameStarted) {  
       console.log("GAME IS STARTING!11");
       game = new Game(io,players[namelist[0]],players[namelist[1]]);
       gameStarted = true;

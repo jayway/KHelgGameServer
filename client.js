@@ -112,7 +112,7 @@ Ball.prototype.update = function(paddle1, paddle2) {
 };
 
 $('form').submit(function(){
-  socket.emit('message', $('#m').val());
+  socket.emit('message', {message:$('#m').val()});
   $('#m').val('');
   return false;
 });
@@ -136,12 +136,17 @@ $(function() {
 
   var name = "Testuser-"+userBrowser()
   console.log("Connecting as "+name);
-  socket.emit('add player', name );
-  socket.on('message', function(msg){
-    $('#messages').append($('<li>').text(msg));
+  socket.emit('add player', {playername: name} );
+  socket.on('message', function(data){
+    $('#messages').append($('<li>').text(data.player+"> "+data.message));
   });
   socket.on('players', function(data){
     var playersString = ""
+    if(data.numPlayers===2) {
+      // game on!
+      
+      $(".spinner").hide();
+    }
     for (var i in data.players) {
     console.log("Player: "+data.players[i]);
       playersString+=" "+data.players[i];
@@ -149,6 +154,7 @@ $(function() {
     $('#players').text("Players: "+playersString);
   });
   socket.on('step', function(gameState){
+    console.log(gameState);
     ball.x = gameState.ball.x;
     ball.y = gameState.ball.y;
     player.paddle.x = gameState.playerPaddle.x;
