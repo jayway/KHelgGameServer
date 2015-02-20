@@ -1,6 +1,7 @@
 var app = require('express')();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
+var util = require('util');
 
 // Pong game:
 //
@@ -56,8 +57,12 @@ function Ball() {
 }
 
 Ball.prototype.resetPosition = function() {
-    this.x_speed = 0;
-    this.y_speed = 3;
+    var randomX = Math.floor(Math.random() * (2 - 0 + 1) + 0);
+    randomX *= Math.floor(Math.random()*2) == 1 ? 1 : -1
+    var randomY = Math.floor(Math.random() * (6 - 2 + 1) + 2);
+    randomY *= Math.floor(Math.random()*2) == 1 ? 1 : -1
+    this.x_speed = randomX;
+    this.y_speed = randomY;
     this.x = 200;
     this.y = 300;
 }
@@ -99,14 +104,14 @@ Ball.prototype.update = function(paddle1, paddle2) {
   if(top_y > 300) {
     if(top_y < (paddle1.y + paddle1.height) && bottom_y > paddle1.y && top_x < (paddle1.x + paddle1.width) && bottom_x > paddle1.x) {
       // hit player1's paddle
-      this.y_speed = -3;
+      this.y_speed = -(this.y_speed);
       this.x_speed += (paddle1.x_speed / 2);
       this.y += this.y_speed;
     }
   } else {
     if(top_y < (paddle2.y + paddle2.height) && bottom_y > paddle2.y && top_x < (paddle2.x + paddle2.width) && bottom_x > paddle2.x) {
       // hit player2's paddle
-      this.y_speed = 3;
+      this.y_speed = -(this.y_speed);
       this.x_speed += (paddle2.x_speed / 2);
       this.y += this.y_speed;
     }
@@ -167,17 +172,25 @@ Game.prototype.resetGame = function() {
 };
 
 Game.prototype.checkWinning = function() {
+  var winning = false;
   if(this.player1Points>=this.winningPoints) {
-    io.emit("winning", {winner:this.player1.name, player1:this.player1Points, player2:this.player2Points});
+    io.emit("winning", {winner:this.player1.name, player1Points:this.player1Points, player2Points:this.player2Points});
+    console.log("Player 1 ("+this.player1.name+") has won!");
     gameStarted = false;
+    winning = true;
   }
   if(this.player2Points>=this.winningPoints) {
-    io.emit("winning", {winner:this.player2.name, player1:this.player1Points, player2:this.player2Points});
+    io.emit("winning", {winner:this.player2.name, player1Points:this.player1Points, player2Points:this.player2Points});
+    console.log("Player 2 ("+this.player2.name+") has won!");
     gameStarted = false;
+  winning = true;
   }
-  // force players to re-register before starting a new game
-  players = {};
-  numPlayers=0;
+  if(winning) {
+    // force players to re-register before starting a new game
+    players = {};
+    numPlayers=0;
+    // force everyone to reconnect after the game too, just to be sure.
+  }
   
 };
 
@@ -189,7 +202,8 @@ Game.prototype.broadcast = function() {
       x:this.ball.x, 
       y:this.ball.y, 
       x_speed:this.ball.x_speed, 
-      y_speed:this.ball.y_speed
+      y_speed:this.ball.y_speed,
+      radius:this.ball.radius
     },
     playerPaddle: {
       x:this.player1.paddle.x, 
@@ -265,11 +279,25 @@ io.on('connection', function(socket){
   socket.on('disconnect', function(){
     console.log(socket.playername+' disconnected');
     if (addedPlayer) {
-      delete players[socket.playername];
+      if(players["player1"]===socket.playername) {
+        delete players["player1"];
+        if(players["player2"]) {
+          // player 2 becomes player 1
+          players["player1"] = players["player2"]
+        delete players["player2"];
+
+        }
+      }
+      else {
+        delete players["player2"];
+      }
       --numPlayers;
+      if(gameStarted) {
       gameStarted = false; //will cause game loop to stop
       console.log("Game stopped due to disconnect.");
+      }
     }
+      console.log("Detected disconnect. Remaining players: "+util.inspect(players, {showHidden: false, depth: null}));
     io.emit('players', {
       players: players,
       numPlayers: numPlayers
@@ -283,43 +311,73 @@ io.on('connection', function(socket){
   });
 
   socket.on('move', function(data){
+    console.log("Move for player"+socket.playername+", move x="+data.paddle.x+". Players list:"+util.inspect(players, {showHidden: false, depth: null}));
     if(gameStarted) {
       player = game.player2;
-      if(socket.playername === game.player1.name) {
+      if(players["player1"]==socket.playername) {
         player = game.player1;
-      }
+      }  
       player.paddle.move(data.paddle.x, data.paddle.y);
     }
     else {
-      console.log("Don't move until the game has started!!");
+      // do nothing
     }
 
 
   });
 
   socket.on('add player', function (data) {
-    console.log("Say hello to "+data.playername);
-
-    socket.playername = data.playername;
-    // add the client's username to the global list
-    players[data.playername] = data.playername;
-    ++numPlayers;
-    console.log(numPlayers+" connected player(s)");
-    namelist = Object.keys(players);
-    addedPlayer = true;
-    io.emit('players', {
-      players: namelist,
-      numPlayers: numPlayers
-    });
-    if(numPlayers==2 && ! gameStarted) {  
-      var clients = findClientsSocket();
-      var socket1 = clients[0];
-      var socket2 = clients[1];
-      console.log("Starting new game!");
-      game = new Game(io,socket1,socket2);
-      gameStarted = true;
-      game.step();
+    console.log("User registration from '"+data.playername+"'");
+    if(players["player1"] === data.playername || players["player2"] === data.playername) {
+      console.log("Player already exists! Please add using another name.");
+      socket.emit("disconnected", {reason:"nametaken", readable_reason:"Player name taken."})
+      socket.disconnect();
     }
+    else {
+      if (gameStarted) {
+        // Game is ongoing
+
+        socket.emit("disconnected", {reason:"gamestarted", readable_reason:"A game is ongoing, please try again later."})
+        socket.disconnect();
+
+      }
+      else {
+        socket.playername = data.playername;
+        if (numPlayers==0) {
+          players["player1"] = data.playername;
+        }
+        else {
+          players["player2"] = data.playername;
+        }
+        ++numPlayers;
+        console.log(numPlayers+" connected player(s): "+util.inspect(players, {showHidden: false, depth: null}));
+        addedPlayer = true;
+        io.emit('players', {
+          players: players,
+          numPlayers: numPlayers
+        });
+        if(numPlayers==2 && ! gameStarted) {  
+          var clients = findClientsSocket();
+          var socket1 = clients[0];
+          var socket2 = clients[1];
+          console.log("Starting game with players: "+util.inspect(players, {showHidden: false, depth: null}));
+          if(socket1.playername===players["player1"]) {
+            // socket1 is actually player1
+            console.log("socket1 is player1");
+            game = new Game(io,socket1,socket2);
+          }
+          else {
+            // socket2 is actually player1
+            console.log("socket2 is player1");
+            game = new Game(io,socket2,socket1);
+          }
+          console.log("Starting new game!");
+          gameStarted = true;
+          game.step();
+        }
+      }
+    }
+
   });
 
 });

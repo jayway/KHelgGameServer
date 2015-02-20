@@ -17,6 +17,10 @@ canvas.width = width;
 canvas.height = height;
 var context = canvas.getContext('2d');
 
+// State
+
+var  loggingIn = false;
+
 // Player
 var player = new Player();
 
@@ -47,6 +51,39 @@ var render = function() {
   remoteplayer.render();
   ball.render();
 };
+
+var showSpinner = function(showSpinner) {
+  if(showSpinner){
+      $(".spinner").show();
+      $(".canvasContainer").hide();
+  }
+  else {
+      $(".spinner").hide();
+      $(".canvasContainer").show();
+  }
+};
+
+var showLogin = function(showLogin) {
+  if(showLogin){
+      $(".login").show();
+      $(".canvasContainer").hide();
+  }
+  else {
+      $(".login").hide();
+      $(".canvasContainer").show();
+  }
+};
+
+
+var loginPlayer = function(playername){
+  var name = "Unknown "+userBrowser()
+  if (playername) {
+    name = playername;
+  }
+  console.log("Connecting as "+name+" in: "+playername);
+  socket.emit('add player', {playername: name} );
+  loggingIn = true;
+}
 
 function Paddle(x, y, width, height) {
   this.x = x;
@@ -82,7 +119,7 @@ Player.prototype.update = function() {
     } else if (value == 39) { // right arrow
       socket.emit('move', {paddle: {x:4.0, y:0} } );
     } else {
-      socket.emit('move', {paddle: {x:0, y:0} } );
+      // don't do anything
     }
   }
 };
@@ -111,9 +148,15 @@ Ball.prototype.update = function(paddle1, paddle2) {
   // from server
 };
 
-$('form').submit(function(){
+$('form.chat').submit(function(){
   socket.emit('message', {message:$('#m').val()});
   $('#m').val('');
+  return false;
+});
+
+$('form.login').submit(function(){
+  playername = $('#l').val();
+  loginPlayer(playername);
   return false;
 });
 
@@ -134,25 +177,38 @@ $(function() {
       socket.emit('move', {paddle: {x:20.0, y:0} } );
   });
 
-  var name = "Testuser-"+userBrowser()
-  console.log("Connecting as "+name);
-  socket.emit('add player', {playername: name} );
+  showSpinner(false);
+  showLogin(true);
+
   socket.on('winning', function(data){
       alert(data.winner+" has won the game!");
-      $(".spinner").show();
-      var name = "Testuser-"+userBrowser()
-      console.log("Connecting as "+name);
-      socket.emit('add player', {playername: name} );
+      showLogin(true);
   });
+
   socket.on('message', function(data){
     $('#messages').append($('<li>').text(data.player+"> "+data.message));
   });
+
+  socket.on('disconnected', function(data){
+    alert("Disconnected! "+data.readable_reason);
+    loggingIn = false;
+    showLogin(true);
+  });
+
   socket.on('players', function(data){
     var playersString = ""
+    if(data.numPlayers==1 && loggingIn) {
+      loggingIn = false;
+      showLogin(false);
+      showSpinner(true);
+    }
     if(data.numPlayers===2) {
       // game on!
-      
-      $(".spinner").hide();
+      showLogin(false);
+      showSpinner(false);
+      if(loggingIn){
+        loggingIn = false;
+      }
     }
     for (var i in data.players) {
     console.log("Player: "+data.players[i]);
@@ -161,7 +217,6 @@ $(function() {
     $('#players').text("Players: "+playersString);
   });
   socket.on('step', function(gameState){
-    console.log(gameState);
     ball.x = gameState.ball.x;
     ball.y = gameState.ball.y;
     player.paddle.x = gameState.playerPaddle.x;

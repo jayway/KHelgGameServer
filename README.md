@@ -48,7 +48,7 @@ This describes the current state of the game. This message will be broadcasted f
 Sample response:
 
     {
-      ball: {x:10, y: 300, x_speed: 3, y_speed: 5},
+      ball: {x:10, y: 300, x_speed: 3, y_speed: 5, radius:5},
       playerPaddle: {x:106, y: 400},
       remotePlayerPaddle: {x:100, y: 0},
       score: {
@@ -62,6 +62,19 @@ Sample response:
     }
 
 TODO: Also add dimensions to the paddles, or just deffine a paddle as a rectangle, x1,y1,x2,y2. Also, radius for the ball is needed.
+
+### winning
+
+Broadcasted when a player has won the game.
+
+Sample response:
+
+    {
+      winner: "Christian",
+      player1Points: 5,
+      player2Points: 2
+    }
+
 
 ## Message to emit:
 

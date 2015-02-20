@@ -5,12 +5,17 @@
 <link rel='stylesheet' href='styles.css'>
 </head>
 <body>
+  <div class="login">
+    <form class="login" action="">
+      <input id="l" autocomplete="off" placeholder="playername" /><button>Login</button>
+    </form>
+  </div>
+  <div class="spinner">
+    <div id="waitingText">waiting for opponent</div>
+    <div class="cube1"></div>
+    <div class="cube2"></div>
+  </div>
   <div class="canvasContainer">
-    <div class="spinner">
-      <div id="waitingText">waiting for opponent</div>
-      <div class="cube1"></div>
-      <div class="cube2"></div>
-    </div>
   </div>
   <div class="controls">
     <button class="leftButton">Left</button>
@@ -22,7 +27,7 @@
   </div>
     <ul id="messages"></ul>
   </div>
-<form action="">
+<form class="chat" action="">
 <input id="m" autocomplete="off" placeholder="chat here" /><button>Send</button>
 </form>
 <script src="socket.io.js"></script>
