@@ -1,4 +1,5 @@
-var app = require('express')();
+var express = require('express');
+var app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var util = require('util');
@@ -252,32 +253,12 @@ Game.prototype.step = function() {
 };
 
 
-
+//
 // Static GET routes:
 //
-app.get('/', function(req, res){
-  res.sendFile(__dirname + '/index.html');
-});
 
-app.get('/styles.css', function(req, res){
-  res.sendFile(__dirname + '/styles.css');
-});
-app.get('/client.js', function(req, res){
-  res.sendFile(__dirname + '/client.js');
-});
-app.get('/socket.io.js', function(req, res){
-  res.sendFile(__dirname + '/socket.io-1.2.0.js');
-});
-app.get('/jquery.js', function(req, res){
-  res.sendFile(__dirname + '/jquery.min.js');
-});
+app.use(express.static(__dirname + '/public'));
 
-app.get('/match_history.json', function(req, res){
-  res.sendFile(__dirname + '/match_history.json');
-});
-app.get('/jay.png', function(req, res){
-  res.sendFile(__dirname + '/jay.png');
-});
 //
 // WebSocket connections:
 //
