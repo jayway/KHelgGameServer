@@ -29,8 +29,8 @@ Paddle.prototype.move = function(x, y) {
   if(this.x < 0) { // all the way to the left
     this.x = 0;
     this.x_speed = 0;
-  } else if (this.x + this.width > 400) { // all the way to the right
-    this.x = 400 - this.width;
+  } else if (this.x + this.width > game.gameplanWidth) { // all the way to the right
+    this.x = game.gameplanWidth - this.width;
     this.x_speed = 0;
   }
 }
@@ -52,8 +52,7 @@ Player.prototype.toString = function playerToString() {
 
 
 function Ball() {
-  this.radius = 5;
-  this.resetPosition();
+  this.radius = 15;
 }
 
 Ball.prototype.resetPosition = function() {
@@ -63,8 +62,9 @@ Ball.prototype.resetPosition = function() {
     randomY *= Math.floor(Math.random()*2) == 1 ? 1 : -1
     this.x_speed = randomX;
     this.y_speed = randomY;
-    this.x = 200;
-    this.y = 300;
+    // Always start in the center
+    this.x = game.gameplanWidth/2;
+    this.y = game.gameplanHeight/2;
 }
 
 Ball.prototype.update = function(paddle1, paddle2) {
@@ -72,16 +72,16 @@ Ball.prototype.update = function(paddle1, paddle2) {
 
   this.x += this.x_speed;
   this.y += this.y_speed;
-  var top_x = this.x - 5;
-  var top_y = this.y - 5;
-  var bottom_x = this.x + 5;
-  var bottom_y = this.y + 5;
+  var top_x = this.x - this.radius;
+  var top_y = this.y - this.radius;
+  var bottom_x = this.x + this.radius;
+  var bottom_y = this.y + this.radius;
 
-  if(this.x - 5 < 0) { // hitting the left wall
-    this.x = 5;
+  if(this.x - this.radius < 0) { // hitting the left wall
+    this.x = this.radius;
     this.x_speed = -this.x_speed;
-  } else if(this.x + 5 > 400) { // hitting the right wall
-    this.x = 395;
+  } else if(this.x + this.radius > game.gameplanWidth) { // hitting the right wall
+    this.x = game.gameplanWidth - this.radius;
     this.x_speed = -this.x_speed;
   }
 
@@ -93,7 +93,7 @@ Ball.prototype.update = function(paddle1, paddle2) {
     console.log("Score for player1! "+game.player1Points+"-"+game.player2Points);
   }
 
-  if(this.y > 600) { // a point was scored
+  if(this.y > game.gameplanHeight) { // a point was scored
     // player 1 dropped the ball
     ++game.player2Points;
     this.resetPosition();
@@ -101,7 +101,7 @@ Ball.prototype.update = function(paddle1, paddle2) {
     console.log("Score for player2! "+game.player1Points+"-"+game.player2Points);
   }
 
-  if(top_y > 300) {
+  if(top_y > game.gameplanHeight/2) {
     if(top_y < (paddle1.y + paddle1.height) && bottom_y > paddle1.y && top_x < (paddle1.x + paddle1.width) && bottom_x > paddle1.x) {
       // hit player1's paddle
       this.y_speed = -(this.y_speed);
@@ -162,6 +162,11 @@ var Game = function(io, socket1, socket2) {
   this.io = io;
 }
 
+
+Game.prototype.rollBall = function() {
+  this.ball.resetPosition();
+};
+
 Game.prototype.update = function() {
   this.ball.update(this.player1.paddle, this.player2.paddle);
 };
@@ -207,11 +212,15 @@ Game.prototype.broadcast = function() {
     },
     playerPaddle: {
       x:this.player1.paddle.x, 
-      y:this.player1.paddle.y
+      y:this.player1.paddle.y,
+      width:this.player1.paddle.width,
+      height:this.player1.paddle.height
     },
     remotePlayerPaddle: {
       x:this.player2.paddle.x, 
-      y:this.player2.paddle.y
+      y:this.player2.paddle.y,
+      width:this.player2.paddle.width,
+      height:this.player2.paddle.height
     },
     score: {
       player1: this.player1Points,
@@ -373,6 +382,7 @@ io.on('connection', function(socket){
           }
           console.log("Starting new game!");
           gameStarted = true;
+          game.rollBall();
           game.step();
         }
       }

@@ -219,10 +219,15 @@ $(function() {
   socket.on('step', function(gameState){
     ball.x = gameState.ball.x;
     ball.y = gameState.ball.y;
+    ball.radius = gameState.ball.radius;
     player.paddle.x = gameState.playerPaddle.x;
     player.paddle.y = gameState.playerPaddle.y;
+    player.paddle.width = gameState.playerPaddle.width;
+    player.paddle.height = gameState.playerPaddle.height;
     remoteplayer.paddle.x = gameState.remotePlayerPaddle.x;
     remoteplayer.paddle.y = gameState.remotePlayerPaddle.y;
+    remoteplayer.paddle.width = gameState.remotePlayerPaddle.width;
+    remoteplayer.paddle.height = gameState.remotePlayerPaddle.height;
     step();
   });
 });
