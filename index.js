@@ -320,7 +320,7 @@ io.on('connection', function(socket){
   });
 
   socket.on('move', function(data){
-    console.log("Move for player"+socket.playername+", move x="+data.paddle.x+". Players list:"+util.inspect(players, {showHidden: false, depth: null}));
+    //console.log("Move for player"+socket.playername+", move x="+data.paddle.x+". Players list:"+util.inspect(players, {showHidden: false, depth: null}));
     if(gameStarted) {
       player = game.player2;
       if(players["player1"]==socket.playername) {
