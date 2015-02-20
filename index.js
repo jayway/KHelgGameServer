@@ -52,7 +52,7 @@ Player.prototype.toString = function playerToString() {
 
 
 function Ball() {
-  this.radius = 15;
+  this.radius = 5;
 }
 
 Ball.prototype.resetPosition = function() {
