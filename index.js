@@ -9,7 +9,6 @@ var PlayerList = require('./lib/playerlist');
 
 var game;
 var playerlist = new PlayerList();
-var gameStarted = false;
 
 // Workaround to get connected sockets
 // See: http://stackoverflow.com/a/24145381/22012
@@ -76,7 +75,7 @@ function broadcastPlayerList() {
 }
 
 function broadcastMessage(fromPlayer,message) {
-  io.sockets.emit('players', {
+  io.sockets.emit('message', {
     player: fromPlayer.name,
     message: message
   });
@@ -85,15 +84,17 @@ function log(message) {
   var d = new Date();
   console.log(d.getHours()+":"+d.getMinutes()+":"+d.getSeconds()+" "+message);
 }
+function po(obj) {
+  // print object nicely
+  return util.inspect(obj, {showHidden: false, depth: null});
+}
 
 io.on('connection', function(socket){
   log("Incoming connection...");
 
   socket.on('add player', function (data) {
-    log("playerlist: "+playerlist);
-    log("playerlist players: "+playerlist.allPlayers());
     var playername = data.playername;
-    if(playerlist.addPlayer(playername)) {
+    if(playerlist.addPlayerWithName(playername)) {
       socket.playername = playername; // tag the socket
       broadcastPlayerList();
       log("Player '"+playername+"' was added.");
@@ -109,9 +110,8 @@ io.on('connection', function(socket){
     //var socket1 = clients[0];
     //var socket2 = clients[1];
     if(playersForGame) {
-      log("GAME ON! Players: '"+playersForGame.player1+"' vs '"+playersForGame.players2+"'.");
+      log("Game is starting! Players: '"+playersForGame.player1.name+"' vs '"+playersForGame.player2.name+"'.");
       game = new Game(io, playersForGame.player1, playersForGame.player2);
-      gameStarted = true;
       game.rollBall();
       game.step();
     }
@@ -126,6 +126,8 @@ io.on('connection', function(socket){
       log("Player '"+socket.playername+"' disconnected.");
       playerlist.deletePlayerWithName(socket.playername);
       broadcastPlayerList();
+      // TODO: If player was playing
+      // stop the game.
     }
     else {
       // do nothing, we don't care about
@@ -133,10 +135,10 @@ io.on('connection', function(socket){
     }
   });
 
-  socket.on('message', function(msg){
+  socket.on('message', function(data){
     if(socket.playername) {
-      log("Message from '"+socket.playername+"': "+msg);
-      broadcastMessage(socket.playername,msg);
+      log("Message from '"+socket.playername+"': "+data.message);
+      broadcastMessage(socket.playername,data.message);
     }
     else {
       log("An unregistered user tried to send a message with content: '"+msg+"'. Not broadcasting.");

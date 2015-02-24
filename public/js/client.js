@@ -211,11 +211,12 @@ $(function() {
       }
     }
     for (var i in data.players) {
-    console.log("Player: "+data.players[i]);
-      playersString+=" "+data.players[i];
+    console.log("Player: "+data.players[i].name);
+      playersString+=" "+data.players[i].name;
     }
     $('#players').text("Players: "+playersString);
   });
+
   socket.on('step', function(gameState){
     ball.x = gameState.ball.x;
     ball.y = gameState.ball.y;

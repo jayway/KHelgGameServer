@@ -66,6 +66,19 @@ suite('PlayerList', function() {
     assert.equal(players.length, 3, "Expected 3 players but got "+players.length+".");
   });
 
+  test('can locate a player by name', function() {
+    list = new PlayerList();
+    var p2 = "TestPlayer1";
+    var p3 = "TestPlayer2";
+    list.addPlayerWithName(p1);
+    list.addPlayerWithName(p2);
+    list.addPlayerWithName(p3);
+    invalidplayer = list.playerWithName("asdasghbfe");
+    assert(!invalidplayer, "invalid player should be false");
+    validplayer = list.playerWithName("TestPlayer1");
+    assert(validplayer, "player should be found, but got: "+validplayer);
+  });
+
   test('can select two players for a game', function() {
     list = new PlayerList();
     var p2 = "TestPlayer1";
