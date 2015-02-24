@@ -8,7 +8,7 @@ var PlayerList = require('./lib/playerlist');
 
 
 var game;
-var playerlist new PlayerList();
+var playerlist = new PlayerList();
 var gameStarted = false;
 
 // Workaround to get connected sockets
@@ -70,8 +70,8 @@ function findClientsSocket(roomId, namespace) {
 
 function broadcastPlayerList() {
   io.sockets.emit('players', {
-    players: playerlist.players,
-    numPlayers: numPlayers
+    players: playerlist.allPlayers(),
+    numPlayers: playerlist.allPlayers().length
   });
 }
 
@@ -81,34 +81,74 @@ function broadcastMessage(fromPlayer,message) {
     message: message
   });
 }
+function log(message) {
+  var d = new Date();
+  console.log(d.getHours()+":"+d.getMinutes()+":"+d.getSeconds()+" "+message);
+}
 
 io.on('connection', function(socket){
-  console.log("Incoming connection...");
+  log("Incoming connection...");
 
   socket.on('add player', function (data) {
+    log("playerlist: "+playerlist);
+    log("playerlist players: "+playerlist.allPlayers());
+    var playername = data.playername;
+    if(playerlist.addPlayer(playername)) {
+      socket.playername = playername; // tag the socket
+      broadcastPlayerList();
+      log("Player '"+playername+"' was added.");
+    }
+    else {
+      socket.disconnect();
+      log("Player '"+playername+"' already exists, disconnecting.");
+      // disconnected since player name exists
+    }
 
-    playername = data.playername;
-    if(playerlist.addPlayer(playername))
-
-
+    var playersForGame = playerlist.playersForGame();
     //var clients = findClientsSocket();
     //var socket1 = clients[0];
     //var socket2 = clients[1];
-    game = new Game(io);
-    console.log("Starting new game!");
-    gameStarted = true;
-    game.rollBall();
-    game.step();
+    if(playersForGame) {
+      log("GAME ON! Players: '"+playersForGame.player1+"' vs '"+playersForGame.players2+"'.");
+      game = new Game(io, playersForGame.player1, playersForGame.player2);
+      gameStarted = true;
+      game.rollBall();
+      game.step();
+    }
+    else {
+      log("Waiting for an opponent.");
+      // not enough players, do nothing
+    }
   });
 
   socket.on('disconnect', function(){
+    if(socket.playername) {
+      log("Player '"+socket.playername+"' disconnected.");
+      playerlist.deletePlayerWithName(socket.playername);
+      broadcastPlayerList();
+    }
+    else {
+      // do nothing, we don't care about
+      // disconnecting users that haven't registered
+    }
   });
 
   socket.on('message', function(msg){
+    if(socket.playername) {
+      log("Message from '"+socket.playername+"': "+msg);
+      broadcastMessage(socket.playername,msg);
+    }
+    else {
+      log("An unregistered user tried to send a message with content: '"+msg+"'. Not broadcasting.");
+      // do nothing, unregistered users
+      // don't have a voice
+    }
   });
 
   socket.on('move', function(data){
-    player.paddle.move(data.paddle.x, data.paddle.y);
+    //player.paddle.move(data.paddle.x, data.paddle.y);
+    // TODO: implement!
+      log("Player '"+socket.playername+"' wants to move the paddle, but that's not implemented yet.");
   });
 
 
@@ -119,5 +159,5 @@ io.on('connection', function(socket){
 app.use(express.static(__dirname + '/public'));
 var port = (process.env.PORT || 3000)
 http.listen(port, function(){
-  console.log('Starting server on *:'+port);
+  log('Starting server on *:'+port);
 });
