@@ -6,8 +6,7 @@ var io = require('socket.io')(http);
 //
 
 var game;
-var players = {};
-var numPlayers = 0;
+var playerlist;
 var gameStarted = false;
 
 function Paddle(x, y, width, height) {
@@ -159,6 +158,49 @@ Game.prototype.step = function() {
 
 
 
+var PlayerList = function() {
+
+  this.players = [];
+}
+
+PlayerList.prototype.addPlayer = function(player) { 
+  // why isn't this.players.some() working?
+  var playerExists = false;
+  this.players.forEach(function(p){
+    if (p.name === player.name) { playerExists = true;}
+  });
+
+  if(!playerExists) {
+    this.players.push(player); 
+    return true;
+  }
+  else {
+    return false;
+  }
+}
+
+PlayerList.prototype.deletePlayerWithName = function(name) { 
+  this.players = this.players.filter(function(player){ 
+    return player.name != name;
+  });
+}
+
+PlayerList.prototype.allPlayers = function() { 
+  return this.players;
+}
+
+PlayerList.prototype.playersForGame = function() { 
+  if(this.players.length>=2) {
+    // remove and return the first two players 
+    var p1 = this.players.shift();
+    var p2 = this.players.shift();
+    return {player1:p1, player2:p2};
+  }
+  else {
+    return false; // or something
+  }
+}
+
 // GET routes:
 //
 app.get('/', function(req, res){
@@ -177,58 +219,70 @@ app.get('/jquery.js', function(req, res){
 
 // WebSocket connections:
 //
+
+/*
+ * Strategy for connections:
+ *
+ * Keep track of all open sockets.
+ * When a user registers (with 'add player')
+ * then add to players list, and tag the socket
+ * with the playername
+ * 
+ * Check if players list contain two players
+ * If so, remove these from players list and
+ * start a new game with them if there isn't an
+ * ongoing game.
+ *
+ * When game is over the players that just played
+ * will have to re-register in order to join the game
+ * queue. The next two people in line will start playing.
+ * 
+ * When a player disconnects remove the player from player
+ * list if the player name exists there.
+ * If an undefined player disconnects (a user that hasn't registered)
+ * nothing happens.
+ * If the disconnecting player is currently playing a game,
+ * the game stops.
+ *
+ * If a move command arrives, check that the sender 
+ * is actually playing a game. If so, move, otherwise do nothing.
+ *
+ * Messages are broadcasted out to everyone if the sender
+ * is registered.
+*/
+
+function broadcastPlayerList() {
+  io.sockets.emit('players', {
+    players: playerlist.players,
+    numPlayers: numPlayers
+  });
+}
+
+function broadcastMessage(fromPlayer,message) {
+  io.sockets.emit('players', {
+    player: fromPlayer.name,
+    message: message
+  });
+}
+
 io.on('connection', function(socket){
-  var addedPlayer = false;
   console.log("Incoming connection...");
 
   socket.on('disconnect', function(){
-    console.log(socket.playername+' disconnected');
-    if (addedPlayer) {
-      delete players[socket.playername];
-      --numPlayers;
-      gameStarted = false; //will cause game loop to stop
-    }
-    io.sockets.emit('players', {
-      players: players,
-      numPlayers: numPlayers
-    });
   });
 
   socket.on('message', function(msg){
-    console.log("message: '" + msg+"' from "+socket.playername+". Broadcasting back.");
-    io.emit('message', socket.playername+"> "+msg);
   });
 
   socket.on('move', function(data){
-    player = game.player2;
-    if(socket.playername === game.player1.name) {
-      player = game.player1;
-    }
     player.paddle.move(data.paddle.x, data.paddle.y);
-
-
   });
 
   socket.on('add player', function (playername) {
-    console.log("Say hello to "+playername);
-
-    socket.playername = playername;
-    // add the client's username to the global list
-    players[playername] = socket;
-    ++numPlayers;
-    console.log(numPlayers+" connected player(s)");
-    namelist = Object.keys(players);
-    addedPlayer = true;
-    io.sockets.emit('players', {
-      players: namelist,
-      numPlayers: numPlayers
-    });
-    if(numPlayers==2 && ! gameStarted) { // right now one player game
       console.log("GAME IS STARTING!11");
       game = new Game(io,players[namelist[0]],players[namelist[1]]);
       gameStarted = true;
       game.step();
-    }
   });
 
 });
@@ -239,3 +293,7 @@ http.listen(3000, function(){
   console.log('listening on *:3000');
 });
 
+// Exports
+module.exports.Game = Game;
+module.exports.PlayerList = PlayerList;
+module.exports.Player= Player;
