@@ -16,6 +16,10 @@ This will launch the server and you can access it at [http://localhost:3000][1].
 
 There is a WebSocket open that you can connect to at the same address.
 
+## Testing the server
+
+    $ mocha -u tdd test
+
 ## Events to listen for:
 
 Here are the different events that the server sends to connected clients.
@@ -49,8 +53,8 @@ Sample response:
 
     {
       ball: {x:10, y: 300, x_speed: 3, y_speed: 5, radius:5},
-      playerPaddle: {x:106, y: 400},
-      remotePlayerPaddle: {x:100, y: 0},
+      playerPaddle: {x:106, y: 400, width:50, height:10},
+      remotePlayerPaddle: {x:100, y: 0,width:50, height:10},
       score: {
         player1: 3,
         player2: 0
@@ -60,8 +64,6 @@ Sample response:
         height: 600
       }
     }
-
-TODO: Also add dimensions to the paddles, or just deffine a paddle as a rectangle, x1,y1,x2,y2. Also, radius for the ball is needed.
 
 ### winning
 
