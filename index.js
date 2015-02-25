@@ -1,241 +1,191 @@
-var app = require('express')();
+var express = require('express');
+var app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
+var util = require('util');
+var Game = require('./lib/ponggame');
+var PlayerList = require('./lib/playerlist');
 
-// Pong game:
-//
 
 var game;
-var players = {};
-var numPlayers = 0;
-var gameStarted = false;
+var playerlist = new PlayerList();
 
-function Paddle(x, y, width, height) {
-  this.x = x;
-  this.y = y;
-  this.width = width;
-  this.height = height;
-  this.x_speed = 0;
-  this.y_speed = 0;
-}
+// Workaround to get connected sockets
+// See: http://stackoverflow.com/a/24145381/22012
+function findClientsSocket(roomId, namespace) {
+  var res = []
+    , ns = io.of(namespace ||"/");    // the default namespace is "/"
 
-
-Paddle.prototype.move = function(x, y) {
-  this.x += x;
-  this.y += y;
-  this.x_speed = x;
-  this.y_speed = y;
-  if(this.x < 0) { // all the way to the left
-    this.x = 0;
-    this.x_speed = 0;
-  } else if (this.x + this.width > 400) { // all the way to the right
-    this.x = 400 - this.width;
-    this.x_speed = 0;
-  }
-}
-
-function Player(socket,name, x,y,w,h) {
-  this.name = name;
-  this.paddle = new Paddle(x, y, w, h);
-  this.socket = socket;
-}
-
-Player.prototype.toString = function playerToString() {
-  if(this.name === undefined) {
-    return "Unregistered player"; 
-  }
-  else {
-    return 'Player known as ' + this.name +". Pos=("+this.paddle.x+","+this.paddle.y+")";
-  }
-}
-
-
-function Ball(x, y) {
-  this.x = x;
-  this.y = y;
-  this.x_speed = 0;
-  this.y_speed = 3;
-  this.radius = 5;
-}
-
-Ball.prototype.update = function(paddle1, paddle2) {
-  // Game logic...
-
-  this.x += this.x_speed;
-  this.y += this.y_speed;
-  var top_x = this.x - 5;
-  var top_y = this.y - 5;
-  var bottom_x = this.x + 5;
-  var bottom_y = this.y + 5;
-
-  if(this.x - 5 < 0) { // hitting the left wall
-    this.x = 5;
-    this.x_speed = -this.x_speed;
-  } else if(this.x + 5 > 400) { // hitting the right wall
-    this.x = 395;
-    this.x_speed = -this.x_speed;
-  }
-
-  if(this.y < 0 || this.y > 600) { // a point was scored
-    this.x_speed = 0;
-    this.y_speed = 3;
-    this.x = 200;
-    this.y = 300;
-  }
-
-  if(top_y > 300) {
-    if(top_y < (paddle1.y + paddle1.height) && bottom_y > paddle1.y && top_x < (paddle1.x + paddle1.width) && bottom_x > paddle1.x) {
-      // hit player1's paddle
-      this.y_speed = -3;
-      this.x_speed += (paddle1.x_speed / 2);
-      this.y += this.y_speed;
-    }
-  } else {
-    if(top_y < (paddle2.y + paddle2.height) && bottom_y > paddle2.y && top_x < (paddle2.x + paddle2.width) && bottom_x > paddle2.x) {
-      // the player2's paddle
-      this.y_speed = 3;
-      this.x_speed += (paddle2.x_speed / 2);
-      this.y += this.y_speed;
+  if (ns) {
+    for (var id in ns.connected) {
+      if(roomId) {
+        var index = ns.connected[id].rooms.indexOf(roomId) ;
+        if(index !== -1) {
+          res.push(ns.connected[id]);
+        }
+      } else {
+        res.push(ns.connected[id]);
+      }
     }
   }
-};
-
-
-
-var Game = function(io, socket1, socket2) {
-
-  this.started = true;
-
-  this.player1 = new Player(socket1, socket1.playername, 175, 580, 50, 10);
-  this.player2 = new Player(socket2, socket2.playername, 175, 10, 50, 10);
-
-  // Ball
-  this.ball = new Ball(200, 300);
-  this.io = io;
+  return res;
 }
 
-Game.prototype.update = function() {
-  this.ball.update(this.player1.paddle, this.player2.paddle);
-};
-
-Game.prototype.broadcast = function() {
-  // broadcast game state
-  var gameState = {
-    ball:
-      {
-      x:this.ball.x, 
-      y:this.ball.y, 
-      x_speed:this.ball.x_speed, 
-      y_speed:this.ball.y_speed
-    },
-    playerPaddle: {
-      x:this.player1.paddle.x, 
-      y:this.player1.paddle.y
-    },
-    remotePlayerPaddle: {
-      x:this.player2.paddle.x, 
-      y:this.player2.paddle.y
-    }
-  }
-  io.emit('step', gameState);
-};
-
-Game.prototype.animate = function(callback) { 
-  setTimeout(callback.bind(this), 1000/30)  // delay
-}
-
-Game.prototype.step = function() {
-  // a disconnect can stop the game at any time
-  if(gameStarted) {
-    this.update();
-  }
-  if(gameStarted) {
-    this.broadcast();
-  }
-  if(gameStarted) {
-    this.animate(this.step);
-  }
-};
 
 
-
-// GET routes:
 //
-app.get('/', function(req, res){
-  res.sendFile(__dirname + '/index.html');
-});
-
-app.get('/client.js', function(req, res){
-  res.sendFile(__dirname + '/client.js');
-});
-app.get('/socket.io.js', function(req, res){
-  res.sendFile(__dirname + '/socket.io-1.2.0.js');
-});
-app.get('/jquery.js', function(req, res){
-  res.sendFile(__dirname + '/jquery.min.js');
-});
-
 // WebSocket connections:
-//
-io.on('connection', function(socket){
-  var addedPlayer = false;
-  console.log("Incoming connection...");
 
-  socket.on('disconnect', function(){
-    console.log(socket.playername+' disconnected');
-    if (addedPlayer) {
-      delete players[socket.playername];
-      --numPlayers;
-      gameStarted = false; //will cause game loop to stop
+/*
+ * Strategy for connections:
+ *
+ * Keep track of all open sockets.
+ * When a user registers (with 'add player')
+ * then add to players list, and tag the socket
+ * with the playername
+ * 
+ * Check if players list contain two players
+ * If so, remove these from players list and
+ * start a new game with them if there isn't an
+ * ongoing game.
+ *
+ * When game is over the players that just played
+ * will have to re-register in order to join the game
+ * queue. The next two people in line will start playing.
+ * 
+ * When a player disconnects remove the player from player
+ * list if the player name exists there.
+ * If an undefined player disconnects (a user that hasn't registered)
+ * nothing happens.
+ * If the disconnecting player is currently playing a game,
+ * the game stops.
+ *
+ * If a move command arrives, check that the sender 
+ * is actually playing a game. If so, move, otherwise do nothing.
+ *
+ * Messages are broadcasted out to everyone if the sender
+ * is registered.
+*/
+
+function broadcastPlayerList() {
+  players = playerlist.allPlayers().map(function(player) { 
+    // let's build a custom reply
+    return {name:player.name, playing:player.playing}; 
+  });
+  log("Current players: "+po(players));
+  io.sockets.emit('players', {
+    players: players,
+    numPlayers: players.length
+  });
+}
+
+function broadcastMessage(fromPlayer,message) {
+  io.sockets.emit('message', {
+    player: fromPlayer.name,
+    message: message
+  });
+}
+
+function log(message) {
+  var d = new Date();
+  console.log(d.getHours()+":"+d.getMinutes()+":"+d.getSeconds()+" "+message);
+}
+function po(obj) {
+  // print object nicely
+  return util.inspect(obj, {showHidden: false, depth: 3}); // set depth to null and horrific things can happen
+}
+
+io.on('connection', function(socket){
+  log("Incoming connection...");
+
+  socket.on('add player', function (data) {
+    var playername = data.playername;
+    if(playerlist.addPlayerWithName(playername)) {
+      socket.playername = playername; // tag the socket
+      log("Player '"+playername+"' was added.");
     }
-    io.sockets.emit('players', {
-      players: players,
-      numPlayers: numPlayers
-    });
+    else {
+      socket.disconnect();
+      log("Player '"+playername+"' already exists, disconnecting.");
+      // disconnected since player name exists
+    }
+
+    var playersForGame = playerlist.playersForGame();
+    //var clients = findClientsSocket();
+    //var socket1 = clients[0];
+    //var socket2 = clients[1];
+
+    if(playersForGame && (!game || !game.started) ) {
+      log("Game is starting! Players: '"+playersForGame.player1.name+"' vs '"+playersForGame.player2.name+"'.");
+      game = new Game(io, playersForGame.player1, playersForGame.player2);
+      game.rollBall();
+      game.step();
+    }
+    else {
+      log("Waiting for an opponent.");
+      // not enough players, do nothing
+    }
+    broadcastPlayerList();
   });
 
-  socket.on('message', function(msg){
-    console.log("message: '" + msg+"' from "+socket.playername+". Broadcasting back.");
-    io.emit('message', socket.playername+"> "+msg);
+  socket.on('disconnect', function(){
+    if(socket.playername) {
+      log("Player '"+socket.playername+"' disconnected.");
+      player = playerlist.playerWithName(socket.playername);
+      if(player && player.playing) {
+        game.started = false;
+        log("'"+player.name+"' has disconnected in the middle of a game! Aborting game.");
+      }
+      playerlist.deletePlayerWithName(socket.playername);
+      broadcastPlayerList();
+    }
+    else {
+      // do nothing, we don't care about
+      // disconnecting users that haven't registered
+    }
+  });
+
+  socket.on('message', function(data){
+    if(socket.playername) {
+      var player = playerlist.playerWithName(socket.playername);
+      if(player) {
+        log("Message from '"+socket.playername+"': "+data.message);
+        broadcastMessage(player,data.message);
+      }
+      else {
+      
+      log("'"+socket.playername+"' tried to send a message with content: '"+data.message+"', but is not in the playerlist. Not broadcasting.");
+      }
+    }
+    else {
+      log("An unregistered user tried to send a message with content: '"+data.message+"'. Not broadcasting.");
+      // do nothing, unregistered users
+      // don't have a voice
+    }
   });
 
   socket.on('move', function(data){
-    player = game.player2;
-    if(socket.playername === game.player1.name) {
-      player = game.player1;
+    if(socket.playername) {
+      player = playerlist.playerWithName(socket.playername);
+      if(player && player.playing) {
+        player.paddle.move(data.paddle.x, data.paddle.y);
+      }
+      else {
+        log("Player '"+player.name+"' who is a spectator tried to move the paddle. That's not ok.");
+      }
     }
-    player.paddle.move(data.paddle.x, data.paddle.y);
-
-
-  });
-
-  socket.on('add player', function (playername) {
-    console.log("Say hello to "+playername);
-
-    socket.playername = playername;
-    // add the client's username to the global list
-    players[playername] = socket;
-    ++numPlayers;
-    console.log(numPlayers+" connected player(s)");
-    namelist = Object.keys(players);
-    addedPlayer = true;
-    io.sockets.emit('players', {
-      players: namelist,
-      numPlayers: numPlayers
-    });
-    if(numPlayers==2 && ! gameStarted) { // right now one player game
-      console.log("GAME IS STARTING!11");
-      game = new Game(io,players[namelist[0]],players[namelist[1]]);
-      gameStarted = true;
-      game.step();
+    else {
+      log("An unregistered user tried to move paddle, that's not allowed.")
     }
   });
+
 
 });
 
 // HTTP server:
 //
-http.listen(3000, function(){
-  console.log('listening on *:3000');
+app.use(express.static(__dirname + '/public'));
+var port = (process.env.PORT || 3000)
+http.listen(port, function(){
+  log('Starting server on *:'+port);
 });
-

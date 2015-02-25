@@ -1,0 +1,123 @@
+
+* { 
+  margin: 0; 
+  padding: 0; 
+  box-sizing: border-box; 
+}
+body { 
+  font: 13px Helvetica, Arial; 
+}
+.header {
+  background: #DDD;
+}
+.messagesContainer {
+  position:fixed; 
+  left:400px; 
+  top: 0px; 
+  width:400px;
+}
+.controls {
+  position:fixed; 
+  left:0px; 
+  top: 600px; 
+  width:400px;
+  background: #EEE;
+}
+
+.rightButton { 
+  float:right;
+}
+
+.login {
+  position:fixed;
+  top:100px;
+  left:100px;
+
+}
+
+form.chat { 
+  background: #000; 
+  padding: 3px; 
+  position: fixed; 
+  bottom: 0; 
+  width: 100%; 
+}
+
+form.chat input { 
+  border: 0; 
+  padding: 10px; 
+  width: 90%; 
+  margin-right: .5%; 
+}
+
+form.chat button { 
+  width: 9%; 
+  background: rgb(130, 224, 255); 
+  border: none; 
+  padding: 10px; 
+}
+#messages { 
+  list-style-type: none; 
+  margin: 0; 
+  padding: 0; 
+}
+#messages li { 
+  padding: 5px 10px; 
+}
+#messages li:nth-child(odd) { 
+  background: #eee; 
+}
+
+.spinner {
+  margin: 100px;
+  width: 32px;
+  height: 32px;
+}
+
+#waitingText {
+  width:150px;
+  margin-left:40px;
+}
+
+.cube1, .cube2 {
+  background-color: #333;
+  width: 10px;
+  height: 10px;
+  position: absolute;
+  top: 140px;
+  left: 160px;
+  
+  -webkit-animation: cubemove 1.8s infinite ease-in-out;
+  animation: cubemove 1.8s infinite ease-in-out;
+}
+
+.cube2 {
+  -webkit-animation-delay: -0.9s;
+  animation-delay: -0.9s;
+}
+
+@-webkit-keyframes cubemove {
+  25% { -webkit-transform: translateX(42px) rotate(-90deg) scale(0.5) }
+  50% { -webkit-transform: translateX(42px) translateY(42px) rotate(-180deg) }
+  75% { -webkit-transform: translateX(0px) translateY(42px) rotate(-270deg) scale(0.5) }
+  100% { -webkit-transform: rotate(-360deg) }
+}
+
+@keyframes cubemove {
+  25% { 
+    transform: translateX(42px) rotate(-90deg) scale(0.5);
+    -webkit-transform: translateX(42px) rotate(-90deg) scale(0.5);
+  } 50% { 
+    transform: translateX(42px) translateY(42px) rotate(-179deg);
+    -webkit-transform: translateX(42px) translateY(42px) rotate(-179deg);
+  } 50.1% { 
+    transform: translateX(42px) translateY(42px) rotate(-180deg);
+    -webkit-transform: translateX(42px) translateY(42px) rotate(-180deg);
+  } 75% { 
+    transform: translateX(0px) translateY(42px) rotate(-270deg) scale(0.5);
+    -webkit-transform: translateX(0px) translateY(42px) rotate(-270deg) scale(0.5);
+  } 100% { 
+    transform: rotate(-360deg);
+    -webkit-transform: rotate(-360deg);
+  }
+}

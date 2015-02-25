@@ -1,0 +1,28 @@
+{
+    "history": [
+        {
+            "player1": "Carl-Emil",
+            "player2": "Albin",
+            "player1_score": 2,
+            "player2_score": 2,
+            "winner": "draw",
+            "match_length": 180
+        },
+        {
+            "player1": "Clown",
+            "player2": "Champ",
+            "player1_score": 10,
+            "player2_score": 0,
+            "winner": "player1",
+            "match_length": 135
+        },
+        {
+            "player1": "Roger",
+            "player2": "Roger",
+            "player1_score": 1,
+            "player2_score": 12,
+            "winner": "player2",
+            "match_length": 95
+        }
+    ]
+}
