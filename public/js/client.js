@@ -19,6 +19,8 @@ var context = canvas.getContext('2d');
 
 // State
 
+var  gameStarted = false;
+var  isReady = false;
 var  loggingIn = false;
 
 // Player
@@ -63,8 +65,8 @@ var showSpinner = function(showSpinner) {
   }
 };
 
-var showLogin = function(showLogin) {
-  if(showLogin){
+var showLogin = function(shouldShowLogin) {
+  if(shouldShowLogin){
       $(".login").show();
       $(".canvasContainer").hide();
   }
@@ -74,6 +76,14 @@ var showLogin = function(showLogin) {
   }
 };
 
+var showReady = function(showReady) {
+  if(showReady){
+    $("#readypane").show();
+  }
+  else {
+    $("#readypane").hide();
+  }
+};
 
 var loginPlayer = function(playername){
   var name = "Unknown "+userBrowser()
@@ -154,6 +164,14 @@ $('form.chat').submit(function(){
   return false;
 });
 
+$('form.ready').submit(function(){
+
+  showReady(false);
+  isReady = true;
+  socket.emit('ready', {});
+  return false;
+});
+
 $('form.login').submit(function(){
   playername = $('#l').val();
   loginPlayer(playername);
@@ -177,12 +195,14 @@ $(function() {
       socket.emit('move', {paddle: {x:20.0, y:0} } );
   });
 
+  showReady(false);
   showSpinner(false);
   showLogin(true);
 
   socket.on('winning', function(data){
       alert(data.winner+" has won the game!");
-      showLogin(true);
+      showReady(true);
+      isReady=false;
   });
 
   socket.on('message', function(data){
@@ -196,29 +216,41 @@ $(function() {
   });
 
   socket.on('players', function(data){
-    console.log("Player list updated: "+data);
     var playersString = ""
     if(data.numPlayers==1 && loggingIn) {
       loggingIn = false;
       showLogin(false);
       showSpinner(true);
     }
-    if(data.numPlayers===2) {
-      // game on!
-      showLogin(false);
-      showSpinner(false);
+    if(data.numPlayers>=2) {
+      gameStarted = data.players[0].state==="playing" && data.players[1].state==="playing";
+
+      if(!gameStarted) {
+        showLogin(false);
+        showSpinner(false);
+        if(!isReady) {
+          showReady(true);
+        }
+      }
+
       if(loggingIn){
         loggingIn = false;
       }
     }
     for (var i in data.players) {
-    console.log("Player: "+data.players[i].name);
-      playersString+=" "+data.players[i].name;
+      playersString+=" "+data.players[i].name+" ("+data.players[i].state+")";
     }
     $('#players').text("Players: "+playersString);
   });
 
   socket.on('step', function(gameState){
+    if(!gameStarted) {
+      // there is an ongoing game that we didn't know about
+      // Let's see that in action!
+      showLogin(false);
+      showSpinner(false);
+
+    }
     ball.x = gameState.ball.x;
     ball.y = gameState.ball.y;
     ball.radius = gameState.ball.radius;
