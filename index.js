@@ -68,9 +68,14 @@ function findClientsSocket(roomId, namespace) {
 */
 
 function broadcastPlayerList() {
+  players = playerlist.allPlayers().map(function(player) { 
+    // let's build a custom reply
+    return {name:player.name, playing:player.playing}; 
+  });
+  log("Current players: "+po(players));
   io.sockets.emit('players', {
-    players: playerlist.allPlayers(),
-    numPlayers: playerlist.allPlayers().length
+    players: players,
+    numPlayers: players.length
   });
 }
 
@@ -80,13 +85,14 @@ function broadcastMessage(fromPlayer,message) {
     message: message
   });
 }
+
 function log(message) {
   var d = new Date();
   console.log(d.getHours()+":"+d.getMinutes()+":"+d.getSeconds()+" "+message);
 }
 function po(obj) {
   // print object nicely
-  return util.inspect(obj, {showHidden: false, depth: null});
+  return util.inspect(obj, {showHidden: false, depth: 3}); // set depth to null and horrific things can happen
 }
 
 io.on('connection', function(socket){
@@ -96,7 +102,6 @@ io.on('connection', function(socket){
     var playername = data.playername;
     if(playerlist.addPlayerWithName(playername)) {
       socket.playername = playername; // tag the socket
-      broadcastPlayerList();
       log("Player '"+playername+"' was added.");
     }
     else {
@@ -109,7 +114,8 @@ io.on('connection', function(socket){
     //var clients = findClientsSocket();
     //var socket1 = clients[0];
     //var socket2 = clients[1];
-    if(playersForGame) {
+
+    if(playersForGame && (!game || !game.started) ) {
       log("Game is starting! Players: '"+playersForGame.player1.name+"' vs '"+playersForGame.player2.name+"'.");
       game = new Game(io, playersForGame.player1, playersForGame.player2);
       game.rollBall();
@@ -119,15 +125,19 @@ io.on('connection', function(socket){
       log("Waiting for an opponent.");
       // not enough players, do nothing
     }
+    broadcastPlayerList();
   });
 
   socket.on('disconnect', function(){
     if(socket.playername) {
       log("Player '"+socket.playername+"' disconnected.");
+      player = playerlist.playerWithName(socket.playername);
+      if(player && player.playing) {
+        game.started = false;
+        log("'"+player.name+"' has disconnected in the middle of a game! Aborting game.");
+      }
       playerlist.deletePlayerWithName(socket.playername);
       broadcastPlayerList();
-      // TODO: If player was playing
-      // stop the game.
     }
     else {
       // do nothing, we don't care about
@@ -137,20 +147,36 @@ io.on('connection', function(socket){
 
   socket.on('message', function(data){
     if(socket.playername) {
-      log("Message from '"+socket.playername+"': "+data.message);
-      broadcastMessage(socket.playername,data.message);
+      var player = playerlist.playerWithName(socket.playername);
+      if(player) {
+        log("Message from '"+socket.playername+"': "+data.message);
+        broadcastMessage(player,data.message);
+      }
+      else {
+      
+      log("'"+socket.playername+"' tried to send a message with content: '"+data.message+"', but is not in the playerlist. Not broadcasting.");
+      }
     }
     else {
-      log("An unregistered user tried to send a message with content: '"+msg+"'. Not broadcasting.");
+      log("An unregistered user tried to send a message with content: '"+data.message+"'. Not broadcasting.");
       // do nothing, unregistered users
       // don't have a voice
     }
   });
 
   socket.on('move', function(data){
-    //player.paddle.move(data.paddle.x, data.paddle.y);
-    // TODO: implement!
-      log("Player '"+socket.playername+"' wants to move the paddle, but that's not implemented yet.");
+    if(socket.playername) {
+      player = playerlist.playerWithName(socket.playername);
+      if(player && player.playing) {
+        player.paddle.move(data.paddle.x, data.paddle.y);
+      }
+      else {
+        log("Player '"+player.name+"' who is a spectator tried to move the paddle. That's not ok.");
+      }
+    }
+    else {
+      log("An unregistered user tried to move paddle, that's not allowed.")
+    }
   });
 
 

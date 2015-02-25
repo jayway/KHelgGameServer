@@ -196,6 +196,7 @@ $(function() {
   });
 
   socket.on('players', function(data){
+    console.log("Player list updated: "+data);
     var playersString = ""
     if(data.numPlayers==1 && loggingIn) {
       loggingIn = false;

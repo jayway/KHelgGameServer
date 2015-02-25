@@ -63,6 +63,9 @@ suite('PlayerList', function() {
     list.addPlayerWithName(p2);
     list.addPlayerWithName(p3);
     players = list.allPlayers();
+    playersString = JSON.stringify(players);
+    expectedPlayersString = '[{"name":"Christian"},{"name":"TestPlayer1"},{"name":"TestPlayer2"}]';
+    assert.equal(playersString, expectedPlayersString, "Expected "+expectedPlayersString+" but got: "+playersString);
     assert.equal(players.length, 3, "Expected 3 players but got "+players.length+".");
   });
 

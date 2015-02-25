@@ -22,13 +22,13 @@ Here are the different events that the server sends to connected clients.
 
 ### players
 
-Returns the currently connected players. Is sent out every time a player connects or disconnects.
+Returns the currently connected players. Is sent out every time a player connects or disconnects. It is indicated if the player is currently engaged in a game or not.
 
 Sample response:
 
     {
       players: {
-        [ { name: "Christian" }, {name: "Albin"} ]
+        [ { name: "Christian", playing:true }, {name: "Albin", playing: true} ]
       }, 
       numPlayers: 2
     }
