@@ -35,6 +35,13 @@ body {
 
 }
 
+#readypane {
+  position:fixed;
+  top:100px;
+  left:100px;
+  
+}
+
 form.chat { 
   background: #000; 
   padding: 3px; 

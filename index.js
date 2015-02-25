@@ -44,10 +44,9 @@ function findClientsSocket(roomId, namespace) {
  * then add to players list, and tag the socket
  * with the playername
  * 
- * Check if players list contain two players
- * If so, remove these from players list and
- * start a new game with them if there isn't an
- * ongoing game.
+ * Check if players list contain at least two players
+ * If so start a new game with them if there isn't an
+ * ongoing game. Remaining players are spectators.
  *
  * When game is over the players that just played
  * will have to re-register in order to join the game
@@ -62,6 +61,8 @@ function findClientsSocket(roomId, namespace) {
  *
  * If a move command arrives, check that the sender 
  * is actually playing a game. If so, move, otherwise do nothing.
+ 
+ * When a player has won, the game is stopped.
  *
  * Messages are broadcasted out to everyone if the sender
  * is registered.
@@ -70,7 +71,7 @@ function findClientsSocket(roomId, namespace) {
 function broadcastPlayerList() {
   players = playerlist.allPlayers().map(function(player) { 
     // let's build a custom reply
-    return {name:player.name, playing:player.playing}; 
+    return {name:player.name, state:player.state}; 
   });
   log("Current players: "+po(players));
   io.sockets.emit('players', {
@@ -97,6 +98,7 @@ function po(obj) {
 
 io.on('connection', function(socket){
   log("Incoming connection...");
+  broadcastPlayerList();
 
   socket.on('add player', function (data) {
     var playername = data.playername;
@@ -110,31 +112,40 @@ io.on('connection', function(socket){
       // disconnected since player name exists
     }
 
-    var playersForGame = playerlist.playersForGame();
-    //var clients = findClientsSocket();
-    //var socket1 = clients[0];
-    //var socket2 = clients[1];
-
-    if(playersForGame && (!game || !game.started) ) {
-      log("Game is starting! Players: '"+playersForGame.player1.name+"' vs '"+playersForGame.player2.name+"'.");
-      game = new Game(io, playersForGame.player1, playersForGame.player2);
-      game.rollBall();
-      game.step();
-    }
-    else {
-      log("Waiting for an opponent.");
-      // not enough players, do nothing
-    }
     broadcastPlayerList();
+  });
+
+  socket.on('ready', function() {
+    if(socket.playername) {
+      player = playerlist.playerWithName(socket.playername);
+      playersForGame = playerlist.playersForGame();
+      if(player && !(player.state === "playing") && playersForGame && (player == playersForGame.player1 || player == playersForGame.player2) ) {
+        log("Player '"+player.name+"' is ready to start!");
+        player.state = "ready";
+        if(playersForGame.player1.state === "ready" && playersForGame.player2.state === "ready") {
+          // start
+          log("Game is starting! Players: '"+playersForGame.player1.name+"' vs '"+playersForGame.player2.name+"'.");
+          game = new Game(io, playersForGame.player1, playersForGame.player2);
+          game.rollBall();
+          game.step();
+        }
+        else {
+          log("Waiting for an opponent.");
+          // not enough players, do nothing
+        }
+        broadcastPlayerList();
+      }
+    }
   });
 
   socket.on('disconnect', function(){
     if(socket.playername) {
       log("Player '"+socket.playername+"' disconnected.");
       player = playerlist.playerWithName(socket.playername);
-      if(player && player.playing) {
+      if(player && player.state === "playing") {
         game.started = false;
         log("'"+player.name+"' has disconnected in the middle of a game! Aborting game.");
+        playerlist.reset();
       }
       playerlist.deletePlayerWithName(socket.playername);
       broadcastPlayerList();
@@ -167,7 +178,7 @@ io.on('connection', function(socket){
   socket.on('move', function(data){
     if(socket.playername) {
       player = playerlist.playerWithName(socket.playername);
-      if(player && player.playing) {
+      if(player && player.state === "playing") {
         player.paddle.move(data.paddle.x, data.paddle.y);
       }
       else {
