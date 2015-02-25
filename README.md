@@ -28,7 +28,7 @@ Sample response:
 
     {
       players: {
-        ["Trudy", "Anne"]
+        [ { name: "Christian" }, {name: "Albin"} ]
       }, 
       numPlayers: 2
     }
