@@ -118,23 +118,17 @@ io.on('connection', function(socket){
   socket.on('ready', function() {
     if(socket.playername) {
       player = playerlist.playerWithName(socket.playername);
+      player.state = 'ready';
+      log("Player '"+player.name+"' is ready to start! " + player.state);
       playersForGame = playerlist.playersForGame();
-      if(player && !(player.state === "playing") && playersForGame && (player == playersForGame.player1 || player == playersForGame.player2) ) {
-        log("Player '"+player.name+"' is ready to start!");
-        player.state = "ready";
-        if(playersForGame.player1.state === "ready" && playersForGame.player2.state === "ready") {
+      if(playersForGame) {
           // start
           log("Game is starting! Players: '"+playersForGame.player1.name+"' vs '"+playersForGame.player2.name+"'.");
           var game = new Game(io, playersForGame.player1, playersForGame.player2);
           game.rollBall();
           game.step();
-        }
-        else {
-          log("Waiting for an opponent.");
-          // not enough players, do nothing
-        }
-        broadcastPlayerList();
       }
+      broadcastPlayerList();
     }
   });
 
