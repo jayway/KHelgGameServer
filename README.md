@@ -94,6 +94,12 @@ A chat message to be broadcasted to other players. The server will keep track of
 
     {message: "hello world"}
 
+### ready
+
+When two or more players have registered, the first two in line will be eligible to start a game. Send "ready" when you're ready to start the game. When two players have sent ready the game starts. When the game is over you need to send ready again for a re-match. No payload is necessary with this command.
+
+    {}
+
 ### move
 
 A command to move the players paddle. This is the only way for the client to influence the game. The server will return the effects of the move in the next step broadcast. The server may handle moves it wants, so don't rely on client side logic for this.

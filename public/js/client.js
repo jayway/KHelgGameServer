@@ -32,6 +32,9 @@ var remoteplayer = new RemotePlayer();
 // Ball
 var ball = new Ball(0, 0);
 
+// GamePlan
+var gameplan = new GamePlan(400, 600);
+
 // Controls
 
 var keysDown = {};
@@ -56,32 +59,41 @@ var render = function() {
 
 var showSpinner = function(showSpinner) {
   if(showSpinner){
-      $(".spinner").show();
-      $(".canvasContainer").hide();
+      $(".spinnerPane").show();
+      //$(".canvasContainer").hide();
   }
   else {
-      $(".spinner").hide();
-      $(".canvasContainer").show();
+      $(".spinnerPane").hide();
+      //$(".canvasContainer").show();
   }
 };
 
 var showLogin = function(shouldShowLogin) {
   if(shouldShowLogin){
-      $(".login").show();
-      $(".canvasContainer").hide();
+      $(".loginPane").show();
+      //$(".canvasContainer").hide();
   }
   else {
-      $(".login").hide();
-      $(".canvasContainer").show();
+      $(".loginPane").hide();
+      //$(".canvasContainer").show();
   }
 };
 
 var showReady = function(showReady) {
   if(showReady){
-    $("#readypane").show();
+    $(".readyPane").show();
   }
   else {
-    $("#readypane").hide();
+    $(".readyPane").hide();
+  }
+};
+
+var showControls = function(showControls) {
+  if(showControls){
+    $(".controlsPane").show();
+  }
+  else {
+    $(".controlsPane").hide();
   }
 };
 
@@ -138,6 +150,12 @@ Player.prototype.update = function() {
 RemotePlayer.prototype.render = function() {
   this.paddle.render();
 };
+
+function GamePlan(width, height) {
+  this.width = width;
+  this.height = height;
+}
+
 
 function Ball(x, y) {
   this.x = x;
@@ -198,11 +216,14 @@ $(function() {
   showReady(false);
   showSpinner(false);
   showLogin(true);
+  $(".playersPane").show();
+  $(".messagesPane").show();
 
   socket.on('winning', function(data){
-      alert(data.winner+" has won the game!");
-      showReady(true);
-      isReady=false;
+    UIkit.notify(data.winner+" has won the game!");
+    showReady(true);
+    showControls(false);
+    isReady=false;
   });
 
   socket.on('message', function(data){
@@ -212,11 +233,12 @@ $(function() {
   socket.on('disconnected', function(data){
     alert("Disconnected! "+data.readable_reason);
     loggingIn = false;
+    showReady(false);
+    showControls(false);
     showLogin(true);
   });
 
   socket.on('players', function(data){
-    var playersString = ""
     if(data.numPlayers==1 && loggingIn) {
       loggingIn = false;
       showLogin(false);
@@ -232,15 +254,19 @@ $(function() {
           showReady(true);
         }
       }
+      else {
+        showControls(true);
+      }
 
       if(loggingIn){
         loggingIn = false;
       }
     }
+    $('ul#players').empty();
     for (var i in data.players) {
-      playersString+=" "+data.players[i].name+" ("+data.players[i].state+")";
+      playerString = data.players[i].name+" ("+data.players[i].state+")";
+      $('ul#players').append("<li>"+playerString+"</li>");
     }
-    $('#players').text("Players: "+playersString);
   });
 
   socket.on('step', function(gameState){

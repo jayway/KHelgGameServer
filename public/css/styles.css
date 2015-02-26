@@ -8,92 +8,50 @@ body {
   font: 13px Helvetica, Arial; 
 }
 .header {
-  background: #DDD;
-}
-.messagesContainer {
-  position:fixed; 
-  left:400px; 
-  top: 0px; 
-  width:400px;
-}
-.controls {
-  position:fixed; 
-  left:0px; 
-  top: 600px; 
-  width:400px;
-  background: #EEE;
+  /*background: #DDD;*/
 }
 
-.rightButton { 
-  float:right;
+.readyPane {
+  display:none;
 }
 
-.login {
-  position:fixed;
-  top:100px;
-  left:100px;
 
-}
-
-#readypane {
-  position:fixed;
-  top:100px;
-  left:100px;
-  
+.spinnerPane {
+  width:200px;
+  height:180px;
+  margin-top:60px;
+  display: none;
 }
 
-form.chat { 
-  background: #000; 
-  padding: 3px; 
-  position: fixed; 
-  bottom: 0; 
-  width: 100%; 
+.chatInputPane {
+  width:100%;
 }
 
-form.chat input { 
-  border: 0; 
-  padding: 10px; 
-  width: 90%; 
-  margin-right: .5%; 
+
+.controlsPane {
+  display:none;
 }
 
-form.chat button { 
-  width: 9%; 
-  background: rgb(130, 224, 255); 
-  border: none; 
-  padding: 10px; 
-}
-#messages { 
-  list-style-type: none; 
-  margin: 0; 
-  padding: 0; 
-}
-#messages li { 
-  padding: 5px 10px; 
-}
-#messages li:nth-child(odd) { 
-  background: #eee; 
+.playersPane {
+  display:none;
 }
 
-.spinner {
-  margin: 100px;
-  width: 32px;
-  height: 32px;
+.messagesPane {
+  display:none;
+}
+
+.canvasContainer {
 }
 
 #waitingText {
-  width:150px;
-  margin-left:40px;
+  width:100%;
+  text-align: center;
 }
 
 .cube1, .cube2 {
   background-color: #333;
   width: 10px;
   height: 10px;
-  position: absolute;
-  top: 140px;
-  left: 160px;
-  
   -webkit-animation: cubemove 1.8s infinite ease-in-out;
   animation: cubemove 1.8s infinite ease-in-out;
 }

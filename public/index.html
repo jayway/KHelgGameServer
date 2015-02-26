@@ -1,43 +1,96 @@
 <!doctype html>
 <html>
-<head>
-<title>Game Server</title>
-<link rel='stylesheet' href='css/styles.css'>
-</head>
-<body>
-  <div class="login">
-    <form class="login" action="">
-      <input id="l" autocomplete="off" placeholder="playername" /><button>Login</button>
-    </form>
-  </div>
-  <div id="readypane">
-    <form class="ready" action="">
-      <button>Ready to start!</button>
-    </form>
-  </div>
-  <div class="spinner">
-    <div id="waitingText">waiting for opponent</div>
-    <div class="cube1"></div>
-    <div class="cube2"></div>
-  </div>
-  <div class="canvasContainer">
-  </div>
-  <div class="controls">
-    <button class="leftButton">Left</button>
-    <button class="rightButton">Right</button>
-  </div>
-  <div class="messagesContainer">
-  <div class="header">
-    <h3 id="players">Players:</h3>
-  </div>
-    <ul id="messages"></ul>
-  </div>
-<form class="chat" action="">
-<input id="m" autocomplete="off" placeholder="chat here" /><button>Send</button>
-</form>
-<script src="js/socket.io-1.2.0.js"></script>
-<script src="js/jquery.min.js"></script>
-<script src="js/client.js"></script>
-</body>
+  <head>
+    <title>JayPong</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link rel='stylesheet' href='css/uikit.gradient.min.css'>
+    <link rel='stylesheet' href='css/notify.gradient.min.css'>
+    <link rel='stylesheet' href='css/styles.css'>
+  </head>
+  <body>
+
+    <div class="uk-grid uk-grid-small">
+
+      <div class="uk-width-small-1-2">
+        <div class="uk-panel-box">
+          <div class="loginPane">
+            <div class="uk-form-icon">
+              <form class="uk-form login" action="">
+                <input id="l" type="text">
+                <button class="uk-button" type="submit">
+                  <i class="uk-icon-user"></i>
+                  Login
+                </button>
+              </form>
+            </div>
+          </div>
+          <div class="readyPane">
+            <form class="ready" action="">
+              <button class="uk-button uk-button-primary uk-container-center" type="submit" id="startButton">Ready to start!</button>
+            </form>
+          </div>
+        </div>
+
+
+        <div class="spinnerPane uk-width-1-1 uk-container-center uk-panel-box">
+          <div id="waitingText">waiting for opponent</div>
+          <br/>
+          <div class="cube1 uk-container-center"></div>
+          <div class="cube2 uk-container-center"></div>
+        </div>
+        <div class="uk-clearfix uk-hidden-notouch controlsPane">
+          <div class="uk-float-left leftButton">
+            <button class="uk-button uk-button-large leftButton">
+              <i class="uk-icon-angle-left"></i>
+            </button>
+          </div>
+          <div class="uk-float-right rightButton">
+            <button class="uk-button uk-button-large rightButton">
+              <i class="uk-icon-angle-right"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="canvasContainer">
+        </div>
+
+      </div> <!-- end of first segment-->
+
+      <div class="uk-width-small-1-2 ">
+        <div class="uk-panel-box playersPane">
+          <div class="uk-grid">
+            <div class="uk-width-1-1">
+              <div class="header">
+                <h3>Players:</h3>
+              </div>
+              <ul class="uk-list uk-list-striped" id="players"></ul>
+            </div>
+          </div>
+        </div>
+        <div class="uk-grid messagesPane">
+          <div class="uk-width-1-1">
+            <div class="uk-panel-box">
+              <div class="header">
+                <h3>Messages:</h3>
+              </div>
+              <div class="chatInputPane">
+                <form class="uk-form chat" action="">
+                  <input id="m" autocomplete="off" placeholder="chat here" /><button class="uk-button">Send</button>
+                </form>
+              </div>
+              <ul class="uk-list uk-list-striped" id="messages"></ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div> <!-- end uk-grid -->
+
+
+    <script src="js/socket.io-1.2.0.js"></script>
+    <script src="js/jquery.min.js"></script>
+    <script src="js/uikit.min.js"></script>
+    <script src="js/notify.min.js"></script>
+    <script src="js/client.js"></script>
+  </body>
 </html>
 
