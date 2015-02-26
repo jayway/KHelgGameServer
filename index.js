@@ -7,7 +7,6 @@ var Game = require('./lib/ponggame');
 var PlayerList = require('./lib/playerlist');
 
 
-var game;
 var playerlist = new PlayerList();
 
 // Workaround to get connected sockets
@@ -102,11 +101,12 @@ io.on('connection', function(socket){
 
   socket.on('add player', function (data) {
     var playername = data.playername;
-    if(playerlist.addPlayerWithName(playername)) {
+    if(playerlist.addPlayerWithName(playername, socket)) {
       socket.playername = playername; // tag the socket
       log("Player '"+playername+"' was added.");
     }
     else {
+      socket.emit('message', 'That username is already taken. Disconnecting');
       socket.disconnect();
       log("Player '"+playername+"' already exists, disconnecting.");
       // disconnected since player name exists
@@ -125,7 +125,7 @@ io.on('connection', function(socket){
         if(playersForGame.player1.state === "ready" && playersForGame.player2.state === "ready") {
           // start
           log("Game is starting! Players: '"+playersForGame.player1.name+"' vs '"+playersForGame.player2.name+"'.");
-          game = new Game(io, playersForGame.player1, playersForGame.player2);
+          var game = new Game(io, playersForGame.player1, playersForGame.player2);
           game.rollBall();
           game.step();
         }
@@ -143,7 +143,7 @@ io.on('connection', function(socket){
       log("Player '"+socket.playername+"' disconnected.");
       player = playerlist.playerWithName(socket.playername);
       if(player && player.state === "playing") {
-        game.started = false;
+        player.game.started = false;
         log("'"+player.name+"' has disconnected in the middle of a game! Aborting game.");
         playerlist.reset();
       }
