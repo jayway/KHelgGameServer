@@ -32,7 +32,7 @@ Sample response:
 
     {
       players: {
-        [ { name: "Christian", playing:true }, {name: "Albin", playing: true} ]
+        [ { name: "Christian", state:"spectator" }, {name: "Albin", state: "spectator"} ]
       }, 
       numPlayers: 2
     }
