@@ -137,9 +137,11 @@ io.on('connection', function(socket){
       log("Player '"+socket.playername+"' disconnected.");
       player = playerlist.playerWithName(socket.playername);
       if(player && player.state === "playing") {
-        player.game.started = false;
+        var game = player.game;
+        game.player1.state = "spectator";
+        game.player2.state = "spectator";
+        game.started = false;
         log("'"+player.name+"' has disconnected in the middle of a game! Aborting game.");
-        playerlist.reset();
       }
       playerlist.deletePlayerWithName(socket.playername);
       broadcastPlayerList();
