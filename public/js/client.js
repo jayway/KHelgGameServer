@@ -22,6 +22,7 @@ var context = canvas.getContext('2d');
 var  gameStarted = false;
 var  isReady = false;
 var  loggingIn = false;
+var  playerName = null;
 
 // Player
 var player = new Player();
@@ -105,6 +106,8 @@ var loginPlayer = function(playername){
   console.log("Connecting as "+name+" in: "+playername);
   socket.emit('add player', {playername: name} );
   loggingIn = true;
+  showReady(true);
+  playerName = playername;
 }
 
 function Paddle(x, y, width, height) {
@@ -191,7 +194,7 @@ $('form.ready').submit(function(){
 });
 
 $('form.login').submit(function(){
-  playername = $('#l').val();
+  var playername = $('#l').val();
   loginPlayer(playername);
   return false;
 });
@@ -239,13 +242,13 @@ $(function() {
   });
 
   socket.on('players', function(data){
-    if(data.numPlayers==1 && loggingIn) {
+    if(loggingIn) {
       loggingIn = false;
       showLogin(false);
       showSpinner(true);
     }
-    if(data.numPlayers>=2) {
-      gameStarted = data.players[0].state==="playing" && data.players[1].state==="playing";
+    if(data.players.some(function(player) { console.log(name); return player.name === playerName && player.state === 'playing'; })) {
+      gameStarted = true;
 
       if(!gameStarted) {
         showLogin(false);
